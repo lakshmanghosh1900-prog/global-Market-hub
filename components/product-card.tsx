@@ -1,0 +1,55 @@
+import type { ListingProduct } from "@/lib/types";
+
+const currency = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
+function freshnessLabel(lastSync: Date) {
+  const elapsedHours = Math.max(0, Math.floor((Date.now() - lastSync.getTime()) / 3_600_000));
+  if (elapsedHours < 1) return "Updated just now";
+  if (elapsedHours === 1) return "Updated 1h ago";
+  if (elapsedHours < 24) return `Updated ${elapsedHours}h ago`;
+
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  return `Updated ${elapsedDays}d ago`;
+}
+
+function discountPercent(price: number, mrp: number | null) {
+  if (!mrp || mrp <= price) return null;
+  return Math.round(((mrp - price) / mrp) * 100);
+}
+
+export function ProductCard({ product }: { product: ListingProduct }) {
+  const discount = discountPercent(product.price, product.mrp);
+  const clickoutUrl = `/out?url=${encodeURIComponent(product.affiliateUrl)}`;
+
+  return (
+    <article className="product-card">
+      <a className="product-image-wrap" href={clickoutUrl} aria-label={`View ${product.title} on Flipkart`}>
+        {product.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="product-image" src={product.image} alt="" loading="lazy" />
+        ) : (
+          <span className="product-image-fallback">GMH</span>
+        )}
+        <span className="merchant-badge">{product.merchant}</span>
+      </a>
+
+      <div className="product-card-body">
+        <p className="freshness">{freshnessLabel(product.lastSync)}</p>
+        <h2 className="product-title">
+          <a href={clickoutUrl}>{product.title}</a>
+        </h2>
+        {product.brand ? <p className="product-brand">{product.brand}</p> : null}
+        <div className="price-row">
+          <strong className="price">{currency.format(product.price)}</strong>
+          {product.mrp ? <span className="mrp">{currency.format(product.mrp)}</span> : null}
+          {discount ? <span className="discount">{discount}% off</span> : null}
+        </div>
+        <p className="stock-label">{product.inStock ? "In stock on Flipkart" : "Currently unavailable"}</p>
+      </div>
+    </article>
+  );
+}

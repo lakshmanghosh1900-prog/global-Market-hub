@@ -12,10 +12,12 @@ India-first affiliate hub for 20 merchants. Built for country routing, fresh dea
 - **Connectors:** Flipkart (real catalog), Amazon Creators API (curated until access), Cuelinks (campaigns/deals only)
 
 ## Quick Start
-1. Copy `.env.example` to `.env`
+1. Copy `.env.example` to `.env.local` for Next.js and copy/fill `.env` for Prisma CLI commands
 2. Fill Flipkart affiliate ID + token
 3. `npm install && npx prisma migrate dev && npm run dev`
 4. Trigger first sync: `npm run sync:flipkart`
+
+With no Flipkart token configured, the listing intentionally renders six local mock products so the Sprint 1 UI can be reviewed before API onboarding.
 
 ## Compliance
 Brand, legal entity, grievance officer required for footer. See PENDING.md
