@@ -17,7 +17,7 @@ export function ProductActions({ product }: { product: ProductActionData }) {
       const response = await fetch("/api/v1/redirect/token", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: product.affiliateUrl }),
+        body: JSON.stringify({ url: product.affiliateUrl, productId: product.id }),
       });
       const data = (await response.json()) as { redirectUrl?: string };
       if (data.redirectUrl) window.location.assign(data.redirectUrl);

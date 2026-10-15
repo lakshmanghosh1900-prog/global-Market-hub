@@ -5,5 +5,10 @@
     { "path": "/api/cron/cuelinks-deals-sync", "schedule": "0 */12 * * *" },
     { "path": "/api/cron/delist", "schedule": "0 2 * * *" },
     { "path": "/api/cron/category-reindex", "schedule": "0 3 * * *" }
+  ],
+  "headers": [
+    { "source": "/_next/static/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
+    { "source": "/manifest.webmanifest", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }] },
+    { "source": "/icons/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] }
   ]
 }

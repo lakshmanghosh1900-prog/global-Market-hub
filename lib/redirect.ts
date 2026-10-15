@@ -26,23 +26,24 @@ export const isAllowedAffiliateUrl = (value: string) => {
   }
 };
 
-export const signatureFor = (timestamp: number, url: string) =>
-  createHmac("sha256", redirectSecret()).update(`${timestamp}.${url}`).digest("hex");
+export const signatureFor = (timestamp: number, url: string, productId?: string) =>
+  createHmac("sha256", redirectSecret()).update(productId ? `${timestamp}.${url}.${productId}` : `${timestamp}.${url}`).digest("hex");
 
-export const isValidSignature = (timestamp: number, url: string, signature: string) => {
+export const isValidSignature = (timestamp: number, url: string, signature: string, productId?: string) => {
   if (!Number.isSafeInteger(timestamp) || Math.abs(Math.floor(Date.now() / 1000) - timestamp) > MAX_AGE_SECONDS) {
     return false;
   }
 
-  const expected = Buffer.from(signatureFor(timestamp, url), "utf8");
+  const expected = Buffer.from(signatureFor(timestamp, url, productId), "utf8");
   const received = Buffer.from(signature, "utf8");
   return expected.length === received.length && timingSafeEqual(expected, received);
 };
 
-export const createSignedRedirect = (url: string) => {
+export const createSignedRedirect = (url: string, productId?: string) => {
   const timestamp = Math.floor(Date.now() / 1000);
-  const signature = signatureFor(timestamp, url);
-  return `/out?url=${encodeURIComponent(url)}&ts=${timestamp}&sig=${signature}`;
+  const signature = signatureFor(timestamp, url, productId);
+  const productPart = productId ? `&pid=${encodeURIComponent(productId)}` : "";
+  return `/out?url=${encodeURIComponent(url)}&ts=${timestamp}&sig=${signature}${productPart}`;
 };
 
 export const trackedMerchantUrl = (url: string) => {

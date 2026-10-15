@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createSignedRedirect, isAllowedAffiliateUrl } from "@/lib/redirect";
 
 export async function POST(request: Request) {
-  let payload: { url?: unknown };
+  let payload: { url?: unknown; productId?: unknown };
   try {
     payload = (await request.json()) as { url?: unknown };
   } catch {
@@ -13,5 +13,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unsupported merchant URL" }, { status: 400 });
   }
 
-  return NextResponse.json({ redirectUrl: createSignedRedirect(payload.url) });
+  return NextResponse.json({ redirectUrl: createSignedRedirect(payload.url, typeof payload.productId === "string" ? payload.productId : undefined) });
 }

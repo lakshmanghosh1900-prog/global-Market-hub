@@ -15,7 +15,7 @@ export async function PriceBracketPage({ bracket, country = "in" }: { bracket: s
       <main className="shell listing-main">
         <section className="listing-hero">
           <div>
-            <p className="eyebrow">Fresh from Flipkart</p>
+             <p className="eyebrow">Fresh from partner catalogs</p>
             <h1>{label} finds</h1>
             <p className="listing-intro">
               Everyday picks under {label.replace("Under ", "")} with clear prices, merchant context, and a fresh sync timestamp.

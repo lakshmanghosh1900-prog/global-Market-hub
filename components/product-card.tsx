@@ -1,6 +1,8 @@
 import type { ListingProduct } from "@/lib/types";
 import Link from "next/link";
 import { ProductActions } from "@/components/product-actions";
+import Image from "next/image";
+import { AffiliateDisclosure } from "@/components/affiliate-disclosure";
 
 const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -29,8 +31,7 @@ export function ProductCard({ product }: { product: ListingProduct }) {
     <article className="product-card">
       <Link className="product-image-wrap" href={`/in/product/${product.slug}`} aria-label={`View ${product.title}`}>
         {product.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="product-image" src={product.image} alt="" loading="lazy" />
+          <Image className="product-image" src={product.image} alt="" width={640} height={640} sizes="(max-width: 700px) 50vw, 25vw" />
         ) : (
           <span className="product-image-fallback">GMH</span>
         )}
@@ -48,7 +49,8 @@ export function ProductCard({ product }: { product: ListingProduct }) {
           {product.mrp ? <span className="mrp">{currency.format(product.mrp)}</span> : null}
           {discount ? <span className="discount">{discount}% off</span> : null}
         </div>
-        <p className="stock-label">{product.inStock ? "In stock on Flipkart" : "Currently unavailable"}</p>
+        <p className="stock-label">{product.inStock ? `In stock on ${product.merchant}` : "Currently unavailable"}</p>
+        <AffiliateDisclosure />
         <ProductActions product={{ ...product, lastSync: product.lastSync.toISOString() }} />
       </div>
     </article>

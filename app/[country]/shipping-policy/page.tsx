@@ -1,0 +1,2 @@
+import { LegalPage, brandName } from "@/components/legal-page";
+export default function ShippingPolicyPage() { return <LegalPage eyebrow="Merchant policy" title={`${brandName()} shipping policy`}><p>{brandName()} does not ship products. We are an affiliate discovery service and do not collect payment or fulfil orders.</p><p>Shipping charges, delivery areas, delivery dates, cancellations, returns, and refunds are controlled by the merchant shown on the offer page. Review that merchant&apos;s policy before placing an order.</p></LegalPage>; }

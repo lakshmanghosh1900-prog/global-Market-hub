@@ -6,9 +6,11 @@ import { siteUrl } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Global Market Hub | India-first finds",
+  title: `${process.env.BRAND_NAME || process.env.NEXT_PUBLIC_BRAND_NAME || "Global Market Hub"} | India-first finds`,
   description: "Freshly synced Flipkart finds under ₹49.",
   metadataBase: new URL(siteUrl()),
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icons/icon.svg", apple: "/icons/icon.svg" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
