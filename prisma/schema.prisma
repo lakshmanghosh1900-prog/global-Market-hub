@@ -26,6 +26,7 @@ model Product {
   category     String
 
   source       String    @default("flipkart")
+  isFixture    Boolean   @default(false)
   oosSince     DateTime?
   missingRuns  Int       @default(0)
   isDelisted   Boolean   @default(false)
@@ -107,6 +108,26 @@ model ClickEvent {
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@index([merchant, createdAt])
+}
+
+model IngestRun {
+  id            String    @id @default(cuid())
+  source        String
+  status        String
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+  feedFetchedAt DateTime?
+  feedCount     Int       @default(0)
+  parsedCount   Int       @default(0)
+  upserted      Int       @default(0)
+  missingChecked Int      @default(0)
+  expiredFeeds  Int       @default(0)
+  cursor        String?
+  error         String?
+  createdAt     DateTime  @default(now())
+
+  @@index([source, createdAt])
+  @@index([source, status, finishedAt])
 }
 
 model Country {

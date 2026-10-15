@@ -2,12 +2,16 @@ import { addFlipkartAffiliateId } from "@/lib/affiliate";
 import { flipkartAffiliateId, flipkartAffiliateToken, flipkartApiBase, hasFlipkartCredentials } from "@/lib/config";
 import { sharedUpsert, type SyncProduct } from "@/lib/products/upsert";
 import categoryMap from "@/data/category_map.json";
+import { taxonomy } from "@/data/catalog";
 
 const FLIPKART_MERCHANT = "Flipkart";
 export const FLIPKART_FEED_EXPIRY_HOURS = 10;
 
 type JsonRecord = Record<string, unknown>;
 type FetchLike = typeof fetch;
+const FETCH_TIMEOUT_MS = 30_000;
+const MAX_RETRIES = 2;
+const validTaxonomy = new Set(taxonomy.map((term) => term.slug));
 
 const flipkartHeaders = () => ({
   Accept: "application/json",
@@ -54,15 +58,41 @@ async function getJson(response: Response) {
   return response.json() as Promise<unknown>;
 }
 
+const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+async function fetchJson(url: string, init: RequestInit, fetcher: FetchLike) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const response = await fetcher(url, { ...init, signal: controller.signal });
+      if (response.ok || (response.status < 400 || response.status >= 500) && attempt === MAX_RETRIES) {
+        return await getJson(response);
+      }
+      if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+        throw new Error(`Flipkart request failed with HTTP ${response.status}`);
+      }
+      lastError = new Error(`Flipkart request failed with HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+      if (attempt === MAX_RETRIES) throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+    await sleep(250 * 2 ** attempt);
+  }
+  throw lastError instanceof Error ? lastError : new Error("Flipkart request failed");
+}
+
 /**
  * Feed URLs expire after ten hours. This deliberately calls the feed-list
  * endpoint on every sync instead of caching or persisting the returned URLs.
  */
 export async function listFlipkartFeeds(fetcher: FetchLike = fetch) {
-  const response = await fetcher(`${flipkartApiBase()}/feed/affiliate/category`, {
+  const body = await fetchJson(`${flipkartApiBase()}${process.env.FLIPKART_FEED_LIST_PATH ?? "/feed/affiliate/category"}`, {
     headers: flipkartHeaders(),
-  });
-  const body = await getJson(response);
+  }, fetcher);
   const candidates = nestedArray(body, ["feeds", "feed", "data", "results"]);
 
   return asRecords(candidates.length > 0 ? candidates : body)
@@ -71,13 +101,11 @@ export async function listFlipkartFeeds(fetcher: FetchLike = fetch) {
 }
 
 export async function fetchFlipkartProduct(productId: string, fetcher: FetchLike = fetch) {
-  const response = await fetcher(`${flipkartApiBase()}/product/${encodeURIComponent(productId)}`, { headers: flipkartHeaders() });
-  return extractProducts(await getJson(response));
+  return extractProducts(await fetchJson(`${flipkartApiBase()}/product/${encodeURIComponent(productId)}`, { headers: flipkartHeaders() }, fetcher));
 }
 
 export async function fetchFlipkartChanges(since = process.env.FLIPKART_CHANGE_SINCE ?? "", fetcher: FetchLike = fetch) {
-  const response = await fetcher(`${flipkartApiBase()}/changes?since=${encodeURIComponent(since)}`, { headers: flipkartHeaders() });
-  return extractProducts(await getJson(response));
+  return extractProducts(await fetchJson(`${flipkartApiBase()}/changes?since=${encodeURIComponent(since)}`, { headers: flipkartHeaders() }, fetcher));
 }
 
 const firstString = (record: JsonRecord, keys: string[]) => {
@@ -127,6 +155,47 @@ const firstBoolean = (record: JsonRecord, keys: string[]) => {
 const slugify = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+const categoryKey = (value: string) => value
+  .toLowerCase()
+  .replace(/&/g, " and ")
+  .replace(/[>/|]+/g, " ")
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-|-$/g, "");
+
+const mapCategory = (value: string | null, price: number) => {
+  const key = value ? categoryKey(value) : "";
+  const direct = categoryMap[key as keyof typeof categoryMap];
+  if (direct && validTaxonomy.has(direct)) return direct;
+
+  const segments = key.split("-").filter(Boolean);
+  const keywordMap: Array<[string[], string]> = [
+    [["mobile", "smartphone", "tablet"], "mobiles"],
+    [["laptop", "computer", "notebook"], "computers"],
+    [["headphone", "earphone", "speaker", "audio"], "audio"],
+    [["television", "tv"], "televisions"],
+    [["camera"], "cameras"],
+    [["watch", "wearable"], "wearables"],
+    [["men", "mens"], "mens-fashion"],
+    [["women", "womens", "ladies"], "womens-fashion"],
+    [["shoe", "footwear", "sandal"], "footwear"],
+    [["beauty", "cosmetic", "makeup"], "beauty"],
+    [["kitchen", "cookware"], "kitchen"],
+    [["home", "furniture", "decor"], "home"],
+    [["grocery", "food", "snack"], "grocery"],
+    [["toy", "toys", "game"], "toys"],
+    [["book"], "books"],
+    [["sport", "fitness", "gym"], "sports"],
+  ];
+  const keywordMatch = keywordMap.find(([words]) => words.some((word) => segments.includes(word)));
+  if (keywordMatch) return keywordMatch[1];
+
+  if (price <= 49) return "under-49";
+  if (price <= 99) return "under-99";
+  if (price <= 199) return "under-199";
+  if (price <= 499) return "under-499";
+  return "electronics";
+};
+
 const normalizeProduct = (record: JsonRecord): SyncProduct | null => {
   const sku = firstString(record, ["sku", "productId", "product_id", "id"]);
   const title = firstString(record, ["title", "name", "productName"]);
@@ -137,10 +206,14 @@ const normalizeProduct = (record: JsonRecord): SyncProduct | null => {
     return null;
   }
 
-  const sourceCategory = firstString(record, ["category", "categoryName", "category_name"]);
-  const normalizedCategory = sourceCategory
-    ? categoryMap[sourceCategory.toLowerCase() as keyof typeof categoryMap] ?? sourceCategory.toLowerCase()
-    : "under-49";
+  const sourceCategory = firstString(record, ["category", "categoryName", "category_name", "categoryPath"]);
+  const normalizedCategory = mapCategory(sourceCategory, price);
+  let trackedUrl: string;
+  try {
+    trackedUrl = addFlipkartAffiliateId(affiliateUrl);
+  } catch {
+    return null;
+  }
 
   return {
     sku,
@@ -155,43 +228,60 @@ const normalizeProduct = (record: JsonRecord): SyncProduct | null => {
       : [],
     description: firstString(record, ["description", "shortDescription"]),
     gtin: firstString(record, ["gtin", "ean", "upc"]),
-    affiliateUrl: addFlipkartAffiliateId(affiliateUrl),
+    affiliateUrl: trackedUrl,
     merchant: FLIPKART_MERCHANT,
     inStock: firstBoolean(record, ["inStock", "in_stock", "availability", "stock"]),
     category: normalizedCategory,
   };
 };
 
-const extractProducts = (body: unknown) => {
+export const extractProducts = (body: unknown) => {
   const products = nestedArray(body, ["products", "product", "items", "data", "results"]);
   return asRecords(products.length > 0 ? products : body)
     .map(normalizeProduct)
     .filter((product): product is SyncProduct => product !== null);
 };
 
-export async function syncFlipkart(fetcher: FetchLike = fetch) {
+export async function syncFlipkart(fetcher: FetchLike = fetch, since = process.env.FLIPKART_CHANGE_SINCE ?? "") {
   if (!hasFlipkartCredentials()) {
     throw new Error(
       "Flipkart credentials are not configured. Set FLIPKART_AFFILIATE_ID and FLIPKART_AFFILIATE_TOKEN before syncing.",
     );
   }
 
-  // Refetch the list first on every run because feed URLs expire after 10h.
+  // Feed URLs expire after ten hours. Refetching the feed-list at the start of
+  // every run guarantees that a stale URL is never reused after expiry.
+  const feedFetchedAt = new Date();
   const feedUrls = await listFlipkartFeeds(fetcher);
   const allProducts: SyncProduct[] = [];
 
   for (const feedUrl of feedUrls) {
-    const response = await fetcher(feedUrl, { headers: flipkartHeaders() });
-    const products = extractProducts(await getJson(response));
+    const products = extractProducts(await fetchJson(feedUrl, { headers: flipkartHeaders() }, fetcher));
     allProducts.push(...products);
   }
 
-  const changedProducts = await fetchFlipkartChanges(undefined, fetcher);
+  const changedProducts = await fetchFlipkartChanges(since, fetcher);
   allProducts.push(...changedProducts);
 
-  const uniqueProducts = Array.from(
-    new Map(allProducts.map((product) => [product.sku, product])).values(),
-  );
+  const uniqueProducts = Array.from(new Map(
+    allProducts.map((product) => [product.gtin ? `gtin:${product.gtin}` : `sku:${product.sku}`, product]),
+  ).values());
 
-  return sharedUpsert(uniqueProducts, { source: "flipkart" });
+  if (feedUrls.length === 0 && changedProducts.length === 0) {
+    throw new Error("Flipkart returned no feed URLs and no changes; catalog sync was not applied");
+  }
+  if (allProducts.length > 0 && uniqueProducts.length === 0) {
+    throw new Error("Flipkart payload could not be normalized; catalog sync was not applied");
+  }
+
+  const result = await sharedUpsert(uniqueProducts, { source: "flipkart" });
+  return {
+    ...result,
+    mode: "real" as const,
+    feedCount: feedUrls.length,
+    parsedCount: uniqueProducts.length,
+    feedFetchedAt,
+    expiredFeeds: 0,
+    cursor: new Date().toISOString(),
+  };
 }

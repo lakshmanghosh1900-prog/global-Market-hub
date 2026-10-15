@@ -15,6 +15,7 @@ export type SyncProduct = {
   merchant: string;
   inStock: boolean;
   category: string;
+  isFixture?: boolean;
 };
 
 const OOS_RETENTION_DAYS = 7;
@@ -59,6 +60,10 @@ export async function sharedUpsert(
   products: SyncProduct[],
   { source }: { source: string },
 ) {
+  if (products.length === 0) {
+    throw new Error("Refusing to apply an empty catalog sync");
+  }
+
   const now = new Date();
   const seenSkus = new Set<string>();
 
@@ -74,7 +79,9 @@ export async function sharedUpsert(
     });
 
     if (!existing && product.gtin) {
-      existing = await prisma.product.findFirst({ where: { gtin: product.gtin } });
+      existing = await prisma.product.findFirst({
+        where: { merchant: product.merchant, gtin: product.gtin },
+      });
     }
 
     if (!existing) {
@@ -103,6 +110,7 @@ export async function sharedUpsert(
     const data = {
         ...product,
         source,
+        isFixture: product.isFixture ?? false,
         oosSince,
         isDelisted,
         duplicateReview: existing?.duplicateReview ?? false,
@@ -119,7 +127,7 @@ export async function sharedUpsert(
 
   const existingProducts = await prisma.product.findMany({
     where: { merchant: products[0]?.merchant ?? "Flipkart", source },
-    select: { id: true, sku: true, missingRuns: true },
+    select: { id: true, sku: true, missingRuns: true, oosSince: true },
   });
 
   for (const product of existingProducts) {
@@ -132,6 +140,8 @@ export async function sharedUpsert(
       where: { id: product.id },
       data: {
         missingRuns,
+        inStock: false,
+        oosSince: product.oosSince ?? now,
         isDelisted: shouldDelistMissingRuns(missingRuns),
       },
     });
@@ -139,6 +149,6 @@ export async function sharedUpsert(
 
   return {
     upserted: products.length,
-    missingChecked: existingProducts.length - seenSkus.size,
+    missingChecked: existingProducts.filter((product) => !seenSkus.has(product.sku)).length,
   };
 }
