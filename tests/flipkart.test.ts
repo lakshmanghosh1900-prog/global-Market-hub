@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { addFlipkartAffiliateId } from "@/lib/affiliate";
-import { listFlipkartFeeds } from "@/lib/connectors/flipkart";
+import { extractProducts, listFlipkartFeeds } from "@/lib/connectors/flipkart";
 import { isAllowedAffiliateUrl, isValidSignature, signatureFor } from "@/lib/redirect";
-import { isPastOosRetention, normalizedTitle, shouldDelistMissingRuns, titleSimilarity } from "@/lib/products/upsert";
+import { isPastOosRetention, normalizedTitle, sharedUpsert, shouldDelistMissingRuns, titleSimilarity } from "@/lib/products/upsert";
 
 test("affiliate tracking is added without dropping existing query parameters", () => {
   const trackedUrl = addFlipkartAffiliateId(
@@ -65,4 +65,16 @@ test("shared upsert policies cover OOS retention and three-run delisting", () =>
 test("title dedup normalizes brand-style feed titles", () => {
   assert.equal(normalizedTitle("Flipkart SmartBuy — USB Cable"), "flipkart smartbuy usb cable");
   assert.equal(titleSimilarity("USB Cable 1m", "USB Cable 1 m") >= 0.9, true);
+});
+
+test("Flipkart product normalization injects affid and maps common taxonomy labels", () => {
+  process.env.FLIPKART_AFFILIATE_ID = "test-affiliate";
+  const products = extractProducts({ products: [{ sku: "M-1", title: "Phone", price: 99, category: "Mobiles & Accessories", productUrl: "https://www.flipkart.com/phone" }] });
+  assert.equal(products.length, 1);
+  assert.equal(products[0]?.category, "mobiles");
+  assert.equal(new URL(products[0]?.affiliateUrl ?? "").searchParams.get("affid"), "test-affiliate");
+});
+
+test("empty syncs are rejected before missing-run delisting can run", async () => {
+  await assert.rejects(() => sharedUpsert([], { source: "flipkart" }), /empty catalog sync/);
 });

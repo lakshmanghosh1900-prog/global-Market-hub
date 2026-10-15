@@ -11,6 +11,7 @@
     "test": "tsx --test tests/flipkart.test.ts",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "sync:flipkart": "tsx scripts/sync-flipkart.ts",
     "seed:catalog": "tsx scripts/seed-catalog.ts",
     "seed:merchants": "tsx scripts/seed-catalog.ts",

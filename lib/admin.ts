@@ -23,7 +23,7 @@ export function isAdminRequest(request: Request, providedSecret?: string) {
     matchesSecret(url.searchParams.get("admin_secret")) ||
     matchesSecret(request.headers.get("x-admin-secret")) ||
     matchesSecret(request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")) ||
-    matchesSecret(request.headers.get("cookie")?.match(/(?:^|;\s*)gmh_admin_session=([^;]+)/)?.[1])
+    matchesSecret(decodeURIComponent(request.headers.get("cookie")?.match(/(?:^|;\s*)gmh_admin_session=([^;]+)/)?.[1] ?? ""))
   );
 }
 

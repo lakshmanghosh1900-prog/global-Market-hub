@@ -136,13 +136,14 @@ export async function sharedUpsert(
     }
 
     const missingRuns = product.missingRuns + 1;
+    const oosSince = product.oosSince ?? now;
     await prisma.product.update({
       where: { id: product.id },
       data: {
         missingRuns,
         inStock: false,
-        oosSince: product.oosSince ?? now,
-        isDelisted: shouldDelistMissingRuns(missingRuns),
+        oosSince,
+        isDelisted: shouldDelistMissingRuns(missingRuns) || isPastOosRetention(oosSince, now),
       },
     });
   }

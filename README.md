@@ -8,7 +8,7 @@ India-first affiliate hub for 20 merchants. Built for country routing, fresh dea
 ## Architecture
 - **Frontend:** Next.js 14 App Router, `/[country]/...` routing, ISR 1h
 - **DB:** Postgres + Prisma
-- **Queue:** BullMQ (Redis) for feed sync
+- **Jobs:** Vercel Cron with durable Prisma ingest-run status; BullMQ/Redis remains a future scale-out option
 - **Connectors:** Flipkart (real catalog), Amazon Creators API (curated until access), Cuelinks (campaigns/deals only)
 
 ## Quick Start
@@ -24,8 +24,12 @@ With no Flipkart token configured, the listing intentionally renders six local m
 - `/in/under/under-49` - Flipkart listing with cart, wishlist, chatbot and merchant clickouts
 - `/in/product/test-slug` - PDP, related products and JSON-LD example
 - `/in/wishlist` - anonymous local wishlist and price-alert controls
+- `/in/login` and `/in/account` - Supabase email OTP and merged cart, wishlist, and alerts
+- `/admin/curated-upload` - ADMIN_SECRET-protected Amazon/Cuelinks CSV import
+- `/admin/clicks` - ADMIN_SECRET-protected merchant/product click dashboard
 - `/sitemap.xml`, `/in/sitemap.xml`, `/robots.txt` - SEO routes
 - `/api/cron/ingest` - Vercel six-hour ingest route, protected by `CRON_SECRET`
+- `/api/v1/ingest/status` - latest feed fetch, product count, and expired feed status
 
 The cart is an affiliate comparison cart. Checkout opens signed, allowlisted merchant redirects; Global Market Hub never collects payment. Amazon remains curated placeholder mode and Cuelinks remains deals-only until their catalog capabilities are verified.
 
@@ -39,10 +43,10 @@ npm run build
 ```
 
 ## Vercel
-Import the repository, configure the variables in `.env.example`, and set `CRON_SECRET`. `vercel.json` schedules the six-hour ingest and hourly price check. Until credentials and a database are supplied, the public UI remains usable with local mock catalog data.
+Import the repository, configure the variables in `.env.example`, set `CRON_SECRET`, run `npm run prisma:migrate:deploy` during deployment, and seed the taxonomy once with `npm run seed:catalog`. `vercel.json` schedules the six-hour ingest and hourly price check. Until credentials and a database are supplied, the public UI remains usable with local mock catalog data. See `docs/PRODUCTION_CHECKLIST.md` for the controlled first-ingestion procedure.
 
 ## Compliance
-Brand, legal entity, grievance officer required for footer. See PENDING.md
+Brand, legal entity, grievance officer, and affiliate disclosure pages are configurable through environment variables. See `PENDING.md` and `docs/PRODUCTION_CHECKLIST.md`.
 
 ## Docs
 - BLUEPRINT.md - master

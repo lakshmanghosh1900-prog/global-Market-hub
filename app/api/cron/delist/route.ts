@@ -8,6 +8,6 @@ export async function GET(request: Request) {
     const result = await runDelistSweep();
     return NextResponse.json({ success: true, delisted: result.count });
   } catch {
-    return NextResponse.json({ success: true, mode: "mock", delisted: 0 });
+    return NextResponse.json({ success: false, error: "Delist sweep failed" }, { status: 500 });
   }
 }

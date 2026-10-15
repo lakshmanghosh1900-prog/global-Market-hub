@@ -20,9 +20,12 @@ export function GET(request: Request) {
 
   const targetUrl = new URL(target);
   const merchant = merchantFromHost(targetUrl.hostname) ?? "Unknown";
-  void prisma.clickEvent.create({
-    data: { merchant, targetHost: targetUrl.hostname, productId },
-  }).catch(() => undefined);
+  void prisma.product.findUnique({ where: { id: productId ?? "" }, select: { id: true } })
+    .catch(() => null)
+    .then((product) => prisma.clickEvent.create({
+      data: { merchant, targetHost: targetUrl.hostname, productId: product?.id },
+    }))
+    .catch(() => undefined);
 
   return NextResponse.redirect(trackedMerchantUrl(target), 307);
 }

@@ -7,6 +7,6 @@ export async function GET(request: Request) {
   try {
     return NextResponse.json({ success: true, indexed: await countCatalogProducts(), mode: "category-map-ready" });
   } catch {
-    return NextResponse.json({ success: true, indexed: 0, mode: "mock" });
+    return NextResponse.json({ success: false, error: "Category reindex failed" }, { status: 500 });
   }
 }

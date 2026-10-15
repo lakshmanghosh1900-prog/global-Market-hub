@@ -48,7 +48,7 @@ export async function importCuratedCsv(text: string) {
     const price = Number(row.price.replace(/[^0-9.]/g, ""));
     const mrp = row.mrp ? Number(row.mrp.replace(/[^0-9.]/g, "")) : null;
     const bracketMax = row.bracket.match(/^under-(\d+)$/)?.[1];
-    if (!row.title || !row.merchant || !Number.isFinite(price) || price <= 0 || (mrp !== null && (!Number.isFinite(mrp) || mrp < price)) || !validCategories.has(row.category_slug) || !bracketMax) {
+    if (!row.title || !row.merchant || !row.image_url || !row.affiliate_url || !Number.isFinite(price) || price <= 0 || (mrp !== null && (!Number.isFinite(mrp) || mrp < price)) || !validCategories.has(row.category_slug) || !bracketMax || price > Number(bracketMax)) {
       errors.push(`Row ${rowNumber}: title, price/mrp, category_slug and bracket are invalid`); continue;
     }
     try {
