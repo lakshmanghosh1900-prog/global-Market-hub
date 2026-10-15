@@ -1,0 +1,63 @@
+# Global Market Hub - Hybrid Mega Website Blueprint - Final v1
+
+**Repo:** https://github.com/lakshmanghosh1900-prog/global-Market-hub.git
+**Track:** Agents & Automation agents
+**Stack:** Next.js 14 App Router, Postgres, BullMQ, Prisma
+
+## Status (2026-10-15)
+- Sections 11 and 12 are now in the doc, followed by build kickoff appendix.
+- Live documentation check changed earlier assumptions.
+- Code has NOT been run or compiled yet.
+
+## Live Check Changes
+
+### Amazon: PA-API 5.0 Deprecated (403)
+- PA-API 5.0 returns 403, deprecated. Built Creators API connector instead.
+- Creators API returns ONLY featured offer, no shipping cost, no reviews.
+- Third-party write-up says access needs 10 qualifying sales in last 30 days. Could not confirm on Amazon own pages. TODO: verify during onboarding.
+- Until access, Amazon stays on curated listings.
+
+### Flipkart: Only Real Catalog
+- Only source with real catalog + change feed, so first connector.
+- Feed links expire after 10 hours, so code refetches them on every run.
+- Sprint 1 is thin slice with Flipkart only.
+
+### Cuelinks: No Product Feeds
+- Help center says it offers no product feeds, only campaigns, deals, transactions and links.
+- Means 18 of your 20 merchants have no automatic catalog yet.
+- Four options: 1) network feeds, 2) curated CSV import, 3) deals-only merchant pages, 4) no scraping.
+- SQL fix for seed included in Section 11.
+- Cuelinks V3 endpoint paths and response formats are configurable placeholders, couldn't retrieve current docs. Check against dashboard.
+
+## Sections
+
+### Section 11: Connectors
+Location: `docs/section-11-connectors.md`
+- Connectors (Flipkart, Amazon Creators, Cuelinks)
+- Shared upsert with out-of-stock and delist rules
+- Category mapper
+- GTIN and title-based dedup
+- BullMQ schedules
+- Tests and first-run procedure
+
+### Section 12: Frontend
+Location: `docs/section-12-frontend.md`
+- Next.js 14 country routing
+- Country switcher (plain India badge until second country active)
+- Header and bracket strip
+- Product card with merchant badge and freshness label
+- Shared listing pages for categories, hubs and price brackets
+- 12.9: Product detail page, JSON-LD, sitemaps - NOW SPECIFIED
+
+### Appendix: Build Kickoff
+Location: `docs/appendix-build-kickoff.md`
+
+## Sprint 1 Thin Slice
+Visitor opens `/in/under/under-49`, sees real products in rupees, clicks through to Flipkart with your tracking ID.
+
+Requirements from owner:
+1. Flipkart affiliate tracking ID and API token
+2. Amazon Associates India status + Creators API conditions
+3. Cuelinks account and API access status
+4. Domain and hosting choice
+5. Brand name, legal entity and grievance officer details
