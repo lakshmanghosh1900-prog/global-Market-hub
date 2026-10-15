@@ -28,6 +28,16 @@ export function CommerceProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [wishlist, setWishlist] = useState<SavedProduct[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  const refreshFromServer = () => {
+    void fetch("/api/commerce/state", { cache: "no-store" }).then(async (response) => {
+      if (!response.ok) return;
+      const state = await response.json() as { cart?: CartLine[]; wishlist?: SavedProduct[] };
+      if (state.cart?.length) setCart(state.cart.map((item) => ({ ...item, lastSync: new Date(item.lastSync) })));
+      if (state.wishlist?.length) setWishlist(state.wishlist.map((item) => ({ ...item, lastSync: new Date(item.lastSync) })));
+    }).catch(() => undefined);
+  };
 
   useEffect(() => {
     try {
@@ -37,11 +47,16 @@ export function CommerceProvider({ children }: { children: React.ReactNode }) {
     } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
+    setHydrated(true);
+    refreshFromServer();
+    const onAuthChanged = () => refreshFromServer();
+    window.addEventListener("gmh-auth-changed", onAuthChanged);
+    return () => window.removeEventListener("gmh-auth-changed", onAuthChanged);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ cart, wishlist }));
-  }, [cart, wishlist]);
+    if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify({ cart, wishlist }));
+  }, [cart, wishlist, hydrated]);
 
   const value = useMemo<CommerceContextValue>(() => ({
     cart,
@@ -54,19 +69,30 @@ export function CommerceProvider({ children }: { children: React.ReactNode }) {
         if (existing) return current.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
         return [...current, { ...product, addedPrice: product.price, quantity: 1 }];
       });
+      void fetch("/api/cart", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productId: product.id, quantity: 1 }) });
       setDrawerOpen(true);
     },
-    removeFromCart: (productId) => setCart((current) => current.filter((item) => item.id !== productId)),
+    removeFromCart: (productId) => {
+      setCart((current) => current.filter((item) => item.id !== productId));
+      void fetch(`/api/cart?productId=${encodeURIComponent(productId)}`, { method: "DELETE" });
+    },
     setQuantity: (productId, quantity) => {
       setCart((current) => current.map((item) => item.id === productId ? { ...item, quantity: Math.max(1, quantity) } : item));
+      void fetch("/api/cart", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ productId, quantity: Math.max(1, quantity) }) });
     },
     toggleWishlist: (product) => {
-      setWishlist((current) => current.some((item) => item.id === product.id)
-        ? current.filter((item) => item.id !== product.id)
-        : [...current, { ...product, addedPrice: product.price }]);
+      setWishlist((current) => {
+        const exists = current.some((item) => item.id === product.id);
+        if (exists) void fetch(`/api/wishlist?productId=${encodeURIComponent(product.id)}`, { method: "DELETE" });
+        else void fetch("/api/wishlist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productId: product.id }) });
+        return exists ? current.filter((item) => item.id !== product.id) : [...current, { ...product, addedPrice: product.price }];
+      });
     },
     isWishlisted: (productId) => wishlist.some((item) => item.id === productId),
-    setTargetPrice: (productId, targetPrice) => setWishlist((current) => current.map((item) => item.id === productId ? { ...item, targetPrice } : item)),
+    setTargetPrice: (productId, targetPrice) => {
+      setWishlist((current) => current.map((item) => item.id === productId ? { ...item, targetPrice } : item));
+      void fetch("/api/wishlist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productId, targetPrice }) });
+    },
     drawerOpen,
     setDrawerOpen,
   }), [cart, wishlist, drawerOpen]);

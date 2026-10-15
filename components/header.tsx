@@ -18,9 +18,10 @@ export function Header() {
           <button type="submit" aria-label="Search">⌕</button>
         </form>
 
-        <nav className="header-nav" aria-label="Primary navigation">
-          <Link href="/in/under/under-49">Deals</Link>
-          <Link href="/in/wishlist">Wishlist</Link>
+          <nav className="header-nav" aria-label="Primary navigation">
+            <Link href="/in/under/under-49">Deals</Link>
+            <Link href="/in/wishlist">Wishlist</Link>
+            <Link href="/in/account">Account</Link>
           <span className="country-badge" aria-label="Current country: India">
             IN · India
           </span>

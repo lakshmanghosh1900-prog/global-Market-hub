@@ -1,26 +1,46 @@
 import { NextResponse } from "next/server";
+import { getCommerceIdentity, setGuestCookie } from "@/lib/commerce-auth";
 import { prisma } from "@/lib/db";
 
+function ownerWhere(userId: string | null, sessionId: string) {
+  return userId ? { OR: [{ userId }, { sessionId }] } : { sessionId };
+}
+
+export async function GET() {
+  const identity = await getCommerceIdentity();
+  try {
+    const alerts = await prisma.priceAlert.findMany({ where: ownerWhere(identity.userId, identity.sessionId), include: { product: true }, orderBy: { createdAt: "desc" } });
+    const response = NextResponse.json({ alerts });
+    if (identity.needsCookie) setGuestCookie(response, identity.sessionId);
+    return response;
+  } catch {
+    return NextResponse.json({ alerts: [], mode: "local" });
+  }
+}
+
 export async function POST(request: Request) {
-  let body: { sessionId?: string; productId?: string; targetPrice?: number; email?: string };
+  const identity = await getCommerceIdentity();
+  let body: { productId?: string; targetPrice?: number; email?: string };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  if (!body.sessionId || !body.productId || typeof body.targetPrice !== "number" || body.targetPrice <= 0 ||
-      (body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email))) {
-    return NextResponse.json({ error: "A valid session, product, target price, and optional email are required" }, { status: 400 });
+  if (!body.productId || typeof body.targetPrice !== "number" || body.targetPrice <= 0 ||
+      (body.email && !/^\S+@\S+\.\S+$/.test(body.email))) {
+    return NextResponse.json({ error: "A product, target price, and optional valid email are required" }, { status: 400 });
   }
 
   try {
     const alert = await prisma.priceAlert.upsert({
-      where: { sessionId_productId_targetPrice: { sessionId: body.sessionId, productId: body.productId, targetPrice: body.targetPrice } },
-      create: { sessionId: body.sessionId, productId: body.productId, targetPrice: body.targetPrice, email: body.email?.trim().toLowerCase() },
-      update: { active: true, email: body.email?.trim().toLowerCase() },
+      where: { sessionId_productId_targetPrice: { sessionId: identity.sessionId, productId: body.productId, targetPrice: body.targetPrice } },
+      create: { sessionId: identity.sessionId, userId: identity.userId, productId: body.productId, targetPrice: body.targetPrice, email: body.email?.trim().toLowerCase() },
+      update: { userId: identity.userId, active: true, email: body.email?.trim().toLowerCase() },
     });
-    return NextResponse.json({ id: alert.id, active: alert.active }, { status: 201 });
+    const response = NextResponse.json({ id: alert.id, active: alert.active }, { status: 201 });
+    if (identity.needsCookie) setGuestCookie(response, identity.sessionId);
+    return response;
   } catch {
     return NextResponse.json({ error: "Price alerts require a configured database" }, { status: 503 });
   }

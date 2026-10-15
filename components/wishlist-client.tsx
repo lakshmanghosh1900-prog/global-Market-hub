@@ -16,7 +16,7 @@ export function WishlistClient() {
     if (!targetPrice || targetPrice <= 0) return;
     setTargetPrice(productId, targetPrice);
     try {
-      const response = await fetch("/api/price-alerts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId: "browser-anonymous", productId, targetPrice, email: email || undefined }) });
+      const response = await fetch("/api/price-alerts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productId, targetPrice, email: email || undefined }) });
       setNotice(response.ok ? "Price alert saved." : "Saved locally; add a database to sync alerts.");
     } catch {
       setNotice("Saved locally; price checks will sync when the database is connected.");
