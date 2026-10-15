@@ -38,9 +38,9 @@ Goal: Visitor opens /in/under/under-49, sees real products in rupees, clicks thr
 5. Brand name, legal entity and grievance officer details
 
 ## After Sprint 1
-- Sprint 2: PDP + JSON-LD + sitemaps implementation
-- Sprint 3: Cuelinks deals-only pages + curated CSV admin
-- Sprint 4: Amazon Creators API onboarding check
+- Global update: cart, wishlist, chatbot, cron protection, PDP + JSON-LD + sitemaps are now scaffolded with placeholders.
+- Next production step: configure real credentials, database, legal details, Resend sender and verify merchant contracts.
+- Later scale pass: Cuelinks deals-only pages + curated CSV admin, Amazon Creators API onboarding, and BullMQ worker deployment.
 
 ## Commands to Push Final Blueprint (If Repo Blank)
 ```bash

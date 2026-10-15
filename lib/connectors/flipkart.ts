@@ -1,5 +1,5 @@
 import { addFlipkartAffiliateId } from "@/lib/affiliate";
-import { flipkartApiBase, hasFlipkartCredentials } from "@/lib/config";
+import { flipkartAffiliateId, flipkartAffiliateToken, flipkartApiBase, hasFlipkartCredentials } from "@/lib/config";
 import { sharedUpsert, type SyncProduct } from "@/lib/products/upsert";
 import categoryMap from "@/data/category_map.json";
 
@@ -11,8 +11,8 @@ type FetchLike = typeof fetch;
 
 const flipkartHeaders = () => ({
   Accept: "application/json",
-  "Fk-Affiliate-Id": process.env.FLIPKART_AFFILIATE_ID ?? "",
-  "Fk-Affiliate-Token": process.env.FLIPKART_AFFILIATE_TOKEN ?? "",
+  "Fk-Affiliate-Id": flipkartAffiliateId() ?? "",
+  "Fk-Affiliate-Token": flipkartAffiliateToken() ?? "",
 });
 
 const asRecords = (value: unknown): JsonRecord[] => {
@@ -114,6 +114,9 @@ const firstBoolean = (record: JsonRecord, keys: string[]) => {
   return true;
 };
 
+const slugify = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
 const normalizeProduct = (record: JsonRecord): SyncProduct | null => {
   const sku = firstString(record, ["sku", "productId", "product_id", "id"]);
   const title = firstString(record, ["title", "name", "productName"]);
@@ -131,11 +134,17 @@ const normalizeProduct = (record: JsonRecord): SyncProduct | null => {
 
   return {
     sku,
+    slug: slugify(`${title}-${sku}`),
     title,
     price,
     mrp: firstNumber(record, ["mrp", "maximumRetailPrice", "maximum_retail_price"]),
     brand: firstString(record, ["brand", "brandName"]),
     image: firstString(record, ["image", "imageUrl", "image_url"]),
+    gallery: firstString(record, ["image", "imageUrl", "image_url"])
+      ? [firstString(record, ["image", "imageUrl", "image_url"]) as string]
+      : [],
+    description: firstString(record, ["description", "shortDescription"]),
+    gtin: firstString(record, ["gtin", "ean", "upc"]),
     affiliateUrl: addFlipkartAffiliateId(affiliateUrl),
     merchant: FLIPKART_MERCHANT,
     inStock: firstBoolean(record, ["inStock", "in_stock", "availability", "stock"]),

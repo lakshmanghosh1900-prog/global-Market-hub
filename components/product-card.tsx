@@ -1,4 +1,6 @@
 import type { ListingProduct } from "@/lib/types";
+import Link from "next/link";
+import { ProductActions } from "@/components/product-actions";
 
 const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -23,11 +25,9 @@ function discountPercent(price: number, mrp: number | null) {
 
 export function ProductCard({ product }: { product: ListingProduct }) {
   const discount = discountPercent(product.price, product.mrp);
-  const clickoutUrl = `/out?url=${encodeURIComponent(product.affiliateUrl)}`;
-
   return (
     <article className="product-card">
-      <a className="product-image-wrap" href={clickoutUrl} aria-label={`View ${product.title} on Flipkart`}>
+      <Link className="product-image-wrap" href={`/in/product/${product.slug}`} aria-label={`View ${product.title}`}>
         {product.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img className="product-image" src={product.image} alt="" loading="lazy" />
@@ -35,12 +35,12 @@ export function ProductCard({ product }: { product: ListingProduct }) {
           <span className="product-image-fallback">GMH</span>
         )}
         <span className="merchant-badge">{product.merchant}</span>
-      </a>
+      </Link>
 
       <div className="product-card-body">
         <p className="freshness">{freshnessLabel(product.lastSync)}</p>
         <h2 className="product-title">
-          <a href={clickoutUrl}>{product.title}</a>
+          <Link href={`/in/product/${product.slug}`}>{product.title}</Link>
         </h2>
         {product.brand ? <p className="product-brand">{product.brand}</p> : null}
         <div className="price-row">
@@ -49,6 +49,7 @@ export function ProductCard({ product }: { product: ListingProduct }) {
           {discount ? <span className="discount">{discount}% off</span> : null}
         </div>
         <p className="stock-label">{product.inStock ? "In stock on Flipkart" : "Currently unavailable"}</p>
+        <ProductActions product={{ ...product, lastSync: product.lastSync.toISOString() }} />
       </div>
     </article>
   );

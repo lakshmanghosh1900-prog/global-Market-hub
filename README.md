@@ -13,11 +13,33 @@ India-first affiliate hub for 20 merchants. Built for country routing, fresh dea
 
 ## Quick Start
 1. Copy `.env.example` to `.env.local` for Next.js and copy/fill `.env` for Prisma CLI commands
-2. Fill Flipkart affiliate ID + token
-3. `npm install && npx prisma migrate dev && npm run dev`
-4. Trigger first sync: `npm run sync:flipkart`
+2. Fill Flipkart affiliate ID + token when API access is available; placeholders keep the UI in mock mode
+3. `npm install && npm run prisma:generate && npx prisma migrate dev && npm run seed:catalog`
+4. `npm run dev`
+5. Trigger first sync: `npm run sync:flipkart`
 
 With no Flipkart token configured, the listing intentionally renders six local mock products so the Sprint 1 UI can be reviewed before API onboarding.
+
+## Global update routes
+- `/in/under/under-49` - Flipkart listing with cart, wishlist, chatbot and merchant clickouts
+- `/in/product/test-slug` - PDP, related products and JSON-LD example
+- `/in/wishlist` - anonymous local wishlist and price-alert controls
+- `/sitemap.xml`, `/in/sitemap.xml`, `/robots.txt` - SEO routes
+- `/api/cron/ingest` - Vercel six-hour ingest route, protected by `CRON_SECRET`
+
+The cart is an affiliate comparison cart. Checkout opens signed, allowlisted merchant redirects; Global Market Hub never collects payment. Amazon remains curated placeholder mode and Cuelinks remains deals-only until their catalog capabilities are verified.
+
+## Checks
+```text
+npm run prisma:generate
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+## Vercel
+Import the repository, configure the variables in `.env.example`, and set `CRON_SECRET`. `vercel.json` schedules the six-hour ingest and hourly price check. Until credentials and a database are supplied, the public UI remains usable with local mock catalog data.
 
 ## Compliance
 Brand, legal entity, grievance officer required for footer. See PENDING.md

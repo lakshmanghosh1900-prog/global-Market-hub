@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addFlipkartAffiliateId } from "@/lib/affiliate";
 import { listFlipkartFeeds } from "@/lib/connectors/flipkart";
+import { isAllowedAffiliateUrl, isValidSignature, signatureFor } from "@/lib/redirect";
 
 test("affiliate tracking is added without dropping existing query parameters", () => {
   const trackedUrl = addFlipkartAffiliateId(
@@ -38,4 +39,16 @@ test("feed URLs are refetched from the list endpoint on a sync run", async () =>
   const headers = calls[0]?.init?.headers as Record<string, string>;
   assert.equal(headers["Fk-Affiliate-Id"], "test-affiliate");
   assert.equal(headers["Fk-Affiliate-Token"], "test-token");
+});
+
+test("affiliate redirect tokens are signed and restricted to approved merchant hosts", () => {
+  const url = "https://www.flipkart.com/item?pid=ABC123";
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = signatureFor(timestamp, url);
+
+  assert.equal(isAllowedAffiliateUrl(url), true);
+  assert.equal(isValidSignature(timestamp, url, signature), true);
+  assert.equal(isValidSignature(timestamp - 601, url, signatureFor(timestamp - 601, url)), false);
+  assert.equal(isAllowedAffiliateUrl("https://flipkart.com.evil.example/item"), false);
+  assert.equal(isAllowedAffiliateUrl("http://www.flipkart.com/item"), false);
 });

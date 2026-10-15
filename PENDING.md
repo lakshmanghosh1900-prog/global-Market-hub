@@ -12,11 +12,13 @@
 - [ ] Amazon Creators API conditions - 10 sales rule
 - [ ] Flipkart feed expiry 10h refetch logic works
 
-## Code Not Yet Run
-- [ ] `npm run build` not run
-- [ ] BullMQ schedules not tested
-- [ ] First-run procedure not tested
-- [ ] Product detail page, JSON-LD, sitemaps (12.9) - spec done, implementation pending in Sprint 2
+## Code / Deployment Follow-ups
+- [x] `npm run build` runs locally
+- [x] Vercel cron routes are protected by `CRON_SECRET`
+- [x] Product detail page, JSON-LD, sitemap and robots thin slice implemented
+- [ ] Configure production Flipkart, database, HMAC, legal and grievance values
+- [ ] Confirm Resend email sender before enabling production price-alert email
+- [ ] BullMQ/Upstash queue worker can replace the Vercel cron thin slice in a later scaling pass
 
 ## SQL Fix for Cuelinks Seed (No Auto Catalog)
 18 of 20 merchants have no auto catalog. Use curated CSV until network feeds found.

@@ -1,11 +1,15 @@
 export type ListingProduct = {
   id: string;
   sku: string;
+  slug: string;
   title: string;
   price: number;
   mrp: number | null;
   brand: string | null;
   image: string | null;
+  gallery?: string[];
+  description?: string | null;
+  gtin?: string | null;
   affiliateUrl: string;
   merchant: string;
   inStock: boolean;

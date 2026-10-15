@@ -2,11 +2,15 @@ import { prisma } from "@/lib/db";
 
 export type SyncProduct = {
   sku: string;
+  slug: string;
   title: string;
   price: number;
   mrp: number | null;
   brand: string | null;
   image: string | null;
+  gallery: string[];
+  description: string | null;
+  gtin: string | null;
   affiliateUrl: string;
   merchant: string;
   inStock: boolean;
@@ -15,6 +19,25 @@ export type SyncProduct = {
 
 const OOS_RETENTION_DAYS = 7;
 const DELIST_AFTER_MISSING_RUNS = 3;
+
+const normalizedTitle = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+const titleSimilarity = (left: string, right: string) => {
+  const a = normalizedTitle(left);
+  const b = normalizedTitle(right);
+  if (a === b) return 1;
+  const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let row = 1; row <= a.length; row += 1) {
+    let diagonal = previous[0];
+    previous[0] = row;
+    for (let column = 1; column <= b.length; column += 1) {
+      const above = previous[column];
+      previous[column] = Math.min(previous[column] + 1, previous[column - 1] + 1, diagonal + (a[row - 1] === b[column - 1] ? 0 : 1));
+      diagonal = above;
+    }
+  }
+  return 1 - previous[b.length] / Math.max(a.length, b.length, 1);
+};
 
 const isPastOosRetention = (oosSince: Date | null, now: Date) =>
   Boolean(
@@ -39,7 +62,7 @@ export async function sharedUpsert(
 
   for (const product of products) {
     seenSkus.add(product.sku);
-    const existing = await prisma.product.findUnique({
+    let existing = await prisma.product.findUnique({
       where: {
         merchant_sku: {
           merchant: product.merchant,
@@ -47,6 +70,22 @@ export async function sharedUpsert(
         },
       },
     });
+
+    if (!existing && product.gtin) {
+      existing = await prisma.product.findFirst({ where: { gtin: product.gtin } });
+    }
+
+    if (!existing) {
+      const titleCandidates = await prisma.product.findMany({
+        where: { merchant: product.merchant, category: product.category },
+        take: 100,
+      });
+      existing = titleCandidates.find((candidate) =>
+        (!product.brand || !candidate.brand || normalizedTitle(product.brand) === normalizedTitle(candidate.brand)) &&
+        titleSimilarity(product.title, candidate.title) >= 0.9,
+      ) ?? null;
+    }
+    if (existing) seenSkus.add(existing.sku);
 
     const oosSince = product.inStock
       ? null
@@ -55,30 +94,20 @@ export async function sharedUpsert(
       ? false
       : existing?.isDelisted || isPastOosRetention(oosSince, now);
 
-    await prisma.product.upsert({
-      where: {
-        merchant_sku: {
-          merchant: product.merchant,
-          sku: product.sku,
-        },
-      },
-      create: {
+    const data = {
         ...product,
         source,
         oosSince,
         isDelisted,
         missingRuns: 0,
         lastSync: now,
-      },
-      update: {
-        ...product,
-        source,
-        oosSince,
-        isDelisted,
-        missingRuns: 0,
-        lastSync: now,
-      },
-    });
+      };
+
+    if (existing) {
+      await prisma.product.update({ where: { id: existing.id }, data });
+    } else {
+      await prisma.product.create({ data });
+    }
   }
 
   const existingProducts = await prisma.product.findMany({

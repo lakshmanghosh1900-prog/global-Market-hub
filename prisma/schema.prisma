@@ -10,11 +10,15 @@ datasource db {
 model Product {
   id           String    @id @default(cuid())
   sku          String
+  slug         String    @unique
   title        String
   price        Decimal   @db.Decimal(10, 2)
   mrp          Decimal?  @db.Decimal(10, 2)
   brand        String?
   image        String?
+  gallery      String[]
+  description  String?
+  gtin         String?
   affiliateUrl String
   merchant     String    @default("Flipkart")
   inStock      Boolean   @default(true)
@@ -28,7 +32,111 @@ model Product {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+  priceAlerts   PriceAlert[]
+  clickEvents   ClickEvent[]
+
   @@unique([merchant, sku])
   @@index([category, inStock, isDelisted])
   @@index([source, missingRuns])
+  @@index([gtin])
+}
+
+model CartItem {
+  id           String   @id @default(cuid())
+  userId       String?
+  sessionId    String
+  productId    String
+  merchant     String
+  affiliateUrl String
+  priceAtAdd   Decimal  @db.Decimal(10, 2)
+  quantity     Int      @default(1)
+  addedAt      DateTime @default(now())
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, addedAt])
+  @@unique([sessionId, productId])
+}
+
+model WishlistItem {
+  id          String   @id @default(cuid())
+  userId      String?
+  sessionId   String
+  productId   String
+  targetPrice Decimal? @db.Decimal(10, 2)
+  addedAt     DateTime @default(now())
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, addedAt])
+  @@unique([sessionId, productId])
+}
+
+model PriceAlert {
+  id          String    @id @default(cuid())
+  userId      String?
+  sessionId   String
+  productId   String
+  email       String?
+  targetPrice Decimal   @db.Decimal(10, 2)
+  active      Boolean   @default(true)
+  triggeredAt DateTime?
+  createdAt   DateTime  @default(now())
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, active])
+  @@unique([sessionId, productId, targetPrice])
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  history   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ClickEvent {
+  id        String   @id @default(cuid())
+  productId String?
+  merchant  String
+  sessionId String?
+  targetHost String
+  createdAt DateTime @default(now())
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([merchant, createdAt])
+}
+
+model Country {
+  code       String   @id
+  name       String
+  active     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model Merchant {
+  slug          String   @id
+  name          String
+  active        Boolean  @default(false)
+  catalogSource String
+  createdAt     DateTime @default(now())
+}
+
+model TaxonomyTerm {
+  slug      String   @id
+  name      String
+  parent    String?
+  createdAt DateTime @default(now())
+}
+
+model PriceBracket {
+  id        String   @id @default(cuid())
+  country   String
+  slug      String
+  label     String
+  maxPrice  Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  @@unique([country, slug])
 }

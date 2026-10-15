@@ -14,6 +14,7 @@ export const mockFlipkartProducts: ListingProduct[] = [
   mockProduct({
     id: "mock-flipkart-1",
     sku: "FK-MOCK-001",
+    slug: "test-slug",
     title: "Micro USB Fast Charging Cable",
     price: 39,
     mrp: 199,
@@ -28,6 +29,7 @@ export const mockFlipkartProducts: ListingProduct[] = [
   mockProduct({
     id: "mock-flipkart-2",
     sku: "FK-MOCK-002",
+    slug: "cotton-face-towels-pack-of-2",
     title: "Cotton Face Towels, Pack of 2",
     price: 45,
     mrp: 249,
@@ -42,6 +44,7 @@ export const mockFlipkartProducts: ListingProduct[] = [
   mockProduct({
     id: "mock-flipkart-3",
     sku: "FK-MOCK-003",
+    slug: "reusable-kitchen-storage-clips",
     title: "Reusable Kitchen Storage Clips",
     price: 29,
     mrp: 99,
@@ -56,6 +59,7 @@ export const mockFlipkartProducts: ListingProduct[] = [
   mockProduct({
     id: "mock-flipkart-4",
     sku: "FK-MOCK-004",
+    slug: "ballpoint-pens-blue-ink-set-of-5",
     title: "Ballpoint Pens, Blue Ink Set of 5",
     price: 35,
     mrp: 75,
@@ -70,6 +74,7 @@ export const mockFlipkartProducts: ListingProduct[] = [
   mockProduct({
     id: "mock-flipkart-5",
     sku: "FK-MOCK-005",
+    slug: "adjustable-cable-management-clips",
     title: "Adjustable Cable Management Clips",
     price: 49,
     mrp: 149,
@@ -84,6 +89,7 @@ export const mockFlipkartProducts: ListingProduct[] = [
   mockProduct({
     id: "mock-flipkart-6",
     sku: "FK-MOCK-006",
+    slug: "mini-plant-pot-for-desk-decor",
     title: "Mini Plant Pot for Desk Decor",
     price: 42,
     mrp: 180,
