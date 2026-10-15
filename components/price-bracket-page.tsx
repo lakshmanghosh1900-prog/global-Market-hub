@@ -3,7 +3,6 @@ import { Header } from "@/components/header";
 import { MerchantNotes } from "@/components/merchant-notes";
 import { ProductGrid } from "@/components/product-grid";
 import { getProductsForBracket } from "@/lib/products";
-import { SiteFooter } from "@/components/site-footer";
 
 export async function PriceBracketPage({ bracket, country = "in" }: { bracket: string; country?: string }) {
   const products = await getProductsForBracket(bracket);
@@ -31,7 +30,6 @@ export async function PriceBracketPage({ bracket, country = "in" }: { bracket: s
         <ProductGrid products={products} />
         <MerchantNotes />
       </main>
-      <SiteFooter />
     </>
   );
 }

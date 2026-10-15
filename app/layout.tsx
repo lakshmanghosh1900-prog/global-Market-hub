@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CommerceProvider } from "@/components/commerce-provider";
 import { ChatWidget } from "@/components/chat-widget";
+import { SiteFooter } from "@/components/site-footer";
 import { siteUrl } from "@/lib/seo";
 import "./globals.css";
 
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-IN">
-      <body><CommerceProvider>{children}<ChatWidget /></CommerceProvider></body>
+      <body><CommerceProvider>{children}<SiteFooter /><ChatWidget /></CommerceProvider></body>
     </html>
   );
 }

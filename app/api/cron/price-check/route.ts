@@ -14,6 +14,6 @@ export async function GET(request: Request) {
     }
     return NextResponse.json({ success: true, ingest, triggered: ready.length, emailProvider: process.env.RESEND_API_KEY ? "resend-configured" : "placeholder" });
   } catch {
-    return NextResponse.json({ success: true, triggered: 0, mode: "mock" });
+    return NextResponse.json({ success: false, error: "Price check failed" }, { status: 500 });
   }
 }

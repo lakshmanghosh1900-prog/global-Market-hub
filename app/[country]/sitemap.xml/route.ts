@@ -11,6 +11,12 @@ export async function GET(_: Request, { params }: { params: { country: string } 
     `/${params.country}/under/under-49`,
     `/${params.country}/under/under-99`,
     `/${params.country}/under/under-199`,
+    `/${params.country}/under/under-499`,
+    `/${params.country}/c/electronics`,
+    `/${params.country}/c/fashion`,
+    `/${params.country}/c/home`,
+    `/${params.country}/hubs/deals`,
+    `/${params.country}/hubs/new-arrivals`,
     ...products.map((product) => `/${params.country}/product/${product.slug}`),
   ];
   const body = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map((path) => `<url><loc>${xmlEscape(`${base}${path}`)}</loc></url>`).join("")}</urlset>`;

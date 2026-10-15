@@ -79,14 +79,15 @@ export async function getProductBySlug(slug: string) {
   }
 }
 
-export async function searchProducts(query: string, bracket?: string) {
+export async function searchProducts(query: string, bracket?: string, category?: string) {
   const normalizedQuery = query.trim().toLowerCase();
   const mockResults = mockFlipkartProducts.filter((product) => {
     const matchesQuery = !normalizedQuery ||
       `${product.title} ${product.brand ?? ""} ${product.category}`.toLowerCase().includes(normalizedQuery);
     const matchesBracket = !bracket || product.category === bracket ||
       (bracket.startsWith("under-") && product.price <= Number(bracket.replace("under-", "")));
-    return matchesQuery && matchesBracket;
+    const matchesCategory = !category || product.category === category;
+    return matchesQuery && matchesBracket && matchesCategory;
   });
 
   if (!hasFlipkartCredentials()) {
@@ -98,6 +99,7 @@ export async function searchProducts(query: string, bracket?: string) {
       where: {
         merchant: "Flipkart",
         isDelisted: false,
+        ...(category ? { category } : {}),
         ...(normalizedQuery
           ? { OR: [{ title: { contains: normalizedQuery, mode: "insensitive" } }, { brand: { contains: normalizedQuery, mode: "insensitive" } }] }
           : {}),

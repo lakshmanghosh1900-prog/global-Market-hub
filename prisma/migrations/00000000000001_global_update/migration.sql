@@ -10,7 +10,8 @@ WHERE "slug" IS NULL;
 
 ALTER TABLE "Product"
   ALTER COLUMN "slug" SET NOT NULL,
-  ALTER COLUMN "gallery" SET NOT NULL;
+  ALTER COLUMN "gallery" SET NOT NULL,
+  ADD COLUMN "duplicateReview" BOOLEAN NOT NULL DEFAULT false;
 
 CREATE UNIQUE INDEX "Product_slug_key" ON "Product"("slug");
 CREATE INDEX "Product_gtin_idx" ON "Product"("gtin");

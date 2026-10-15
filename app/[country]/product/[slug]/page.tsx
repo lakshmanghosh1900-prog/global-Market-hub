@@ -17,6 +17,6 @@ export default async function ProductPage({ params }: { params: { country: strin
   if (!isActiveCountry(params.country)) notFound();
   const product = await getProductBySlug(params.slug);
   if (!product) notFound();
-  const related = (await searchProducts(product.category)).filter((item) => item.id !== product.id).slice(0, 3);
+  const related = (await searchProducts("", undefined, product.category)).filter((item) => item.id !== product.id).slice(0, 3);
   return <><Header /><ProductDetail product={product} related={related} country={params.country.toLowerCase()} /></>;
 }

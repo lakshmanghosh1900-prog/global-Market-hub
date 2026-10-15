@@ -20,9 +20,9 @@ export type SyncProduct = {
 const OOS_RETENTION_DAYS = 7;
 const DELIST_AFTER_MISSING_RUNS = 3;
 
-const normalizedTitle = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+export const normalizedTitle = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
-const titleSimilarity = (left: string, right: string) => {
+export const titleSimilarity = (left: string, right: string) => {
   const a = normalizedTitle(left);
   const b = normalizedTitle(right);
   if (a === b) return 1;
@@ -39,12 +39,14 @@ const titleSimilarity = (left: string, right: string) => {
   return 1 - previous[b.length] / Math.max(a.length, b.length, 1);
 };
 
-const isPastOosRetention = (oosSince: Date | null, now: Date) =>
+export const isPastOosRetention = (oosSince: Date | null, now: Date) =>
   Boolean(
     oosSince &&
       now.getTime() - oosSince.getTime() >=
         OOS_RETENTION_DAYS * 24 * 60 * 60 * 1000,
   );
+
+export const shouldDelistMissingRuns = (missingRuns: number) => missingRuns >= DELIST_AFTER_MISSING_RUNS;
 
 /**
  * Persist one feed run and apply the shared stock/delist policy.
@@ -77,13 +79,17 @@ export async function sharedUpsert(
 
     if (!existing) {
       const titleCandidates = await prisma.product.findMany({
-        where: { merchant: product.merchant, category: product.category },
+        where: { category: product.category },
         take: 100,
       });
-      existing = titleCandidates.find((candidate) =>
+      const titleMatch = titleCandidates.find((candidate) =>
         (!product.brand || !candidate.brand || normalizedTitle(product.brand) === normalizedTitle(candidate.brand)) &&
         titleSimilarity(product.title, candidate.title) >= 0.9,
       ) ?? null;
+      if (titleMatch?.merchant === product.merchant) existing = titleMatch;
+      if (titleMatch && titleMatch.merchant !== product.merchant) {
+        await prisma.product.update({ where: { id: titleMatch.id }, data: { duplicateReview: true } });
+      }
     }
     if (existing) seenSkus.add(existing.sku);
 
@@ -99,6 +105,7 @@ export async function sharedUpsert(
         source,
         oosSince,
         isDelisted,
+        duplicateReview: existing?.duplicateReview ?? false,
         missingRuns: 0,
         lastSync: now,
       };
@@ -125,7 +132,7 @@ export async function sharedUpsert(
       where: { id: product.id },
       data: {
         missingRuns,
-        isDelisted: missingRuns >= DELIST_AFTER_MISSING_RUNS,
+        isDelisted: shouldDelistMissingRuns(missingRuns),
       },
     });
   }

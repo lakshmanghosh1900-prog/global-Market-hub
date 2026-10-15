@@ -3,6 +3,7 @@ import test from "node:test";
 import { addFlipkartAffiliateId } from "@/lib/affiliate";
 import { listFlipkartFeeds } from "@/lib/connectors/flipkart";
 import { isAllowedAffiliateUrl, isValidSignature, signatureFor } from "@/lib/redirect";
+import { isPastOosRetention, normalizedTitle, shouldDelistMissingRuns, titleSimilarity } from "@/lib/products/upsert";
 
 test("affiliate tracking is added without dropping existing query parameters", () => {
   const trackedUrl = addFlipkartAffiliateId(
@@ -51,4 +52,17 @@ test("affiliate redirect tokens are signed and restricted to approved merchant h
   assert.equal(isValidSignature(timestamp - 601, url, signatureFor(timestamp - 601, url)), false);
   assert.equal(isAllowedAffiliateUrl("https://flipkart.com.evil.example/item"), false);
   assert.equal(isAllowedAffiliateUrl("http://www.flipkart.com/item"), false);
+});
+
+test("shared upsert policies cover OOS retention and three-run delisting", () => {
+  const now = new Date("2026-10-16T00:00:00.000Z");
+  assert.equal(isPastOosRetention(new Date("2026-10-09T00:00:00.000Z"), now), true);
+  assert.equal(isPastOosRetention(new Date("2026-10-10T00:00:00.000Z"), now), false);
+  assert.equal(shouldDelistMissingRuns(2), false);
+  assert.equal(shouldDelistMissingRuns(3), true);
+});
+
+test("title dedup normalizes brand-style feed titles", () => {
+  assert.equal(normalizedTitle("Flipkart SmartBuy — USB Cable"), "flipkart smartbuy usb cable");
+  assert.equal(titleSimilarity("USB Cable 1m", "USB Cable 1 m") >= 0.9, true);
 });

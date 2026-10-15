@@ -29,6 +29,7 @@ model Product {
   oosSince     DateTime?
   missingRuns  Int       @default(0)
   isDelisted   Boolean   @default(false)
+  duplicateReview Boolean @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

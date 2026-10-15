@@ -9,8 +9,10 @@ export const organizationJsonLd = () => ({
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer support",
+    name: process.env.GRIEVANCE_OFFICER_NAME || "Grievance officer pending",
     email: process.env.GRIEVANCE_OFFICER_EMAIL || "grievance@example.com",
   },
+  address: process.env.GRIEVANCE_OFFICER_ADDRESS || "Address pending",
 });
 
 export const safeJsonLd = (value: unknown) =>

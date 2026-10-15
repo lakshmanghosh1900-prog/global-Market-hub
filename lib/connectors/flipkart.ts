@@ -70,6 +70,16 @@ export async function listFlipkartFeeds(fetcher: FetchLike = fetch) {
     .filter((url): url is string => typeof url === "string" && url.length > 0);
 }
 
+export async function fetchFlipkartProduct(productId: string, fetcher: FetchLike = fetch) {
+  const response = await fetcher(`${flipkartApiBase()}/product/${encodeURIComponent(productId)}`, { headers: flipkartHeaders() });
+  return extractProducts(await getJson(response));
+}
+
+export async function fetchFlipkartChanges(since = process.env.FLIPKART_CHANGE_SINCE ?? "", fetcher: FetchLike = fetch) {
+  const response = await fetcher(`${flipkartApiBase()}/changes?since=${encodeURIComponent(since)}`, { headers: flipkartHeaders() });
+  return extractProducts(await getJson(response));
+}
+
 const firstString = (record: JsonRecord, keys: string[]) => {
   for (const key of keys) {
     const value = record[key];
@@ -175,6 +185,9 @@ export async function syncFlipkart(fetcher: FetchLike = fetch) {
     const products = extractProducts(await getJson(response));
     allProducts.push(...products);
   }
+
+  const changedProducts = await fetchFlipkartChanges(undefined, fetcher);
+  allProducts.push(...changedProducts);
 
   const uniqueProducts = Array.from(
     new Map(allProducts.map((product) => [product.sku, product])).values(),
