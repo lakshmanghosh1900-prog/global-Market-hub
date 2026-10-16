@@ -55,3 +55,18 @@ Example:
 ## 12.6 Country Switcher Logic
 - Until second country active: show plain badge "IN - India"
 - When second country active: dropdown with IN, AE etc.
+
+## 12.7 Affiliate Wishlist Cart
+
+- `lib/cart-storage.ts` owns the `global_market_cart` browser key, active-item reads, 30-day expiry cleanup, add/remove/clear methods, and the 50-item limit.
+- `components/commerce-provider.tsx` keeps cart state available to the header, product actions, account merge flow, and drawer. A signed-in merge sends product IDs to the server and clears the local snapshot only after a successful merge.
+- `components/cart/WishlistCartDrawer.tsx` is a responsive right-side slide-over. It shows thumbnails, localized INR prices, merchant badges, freshness/stock, remove actions, Clear All, the affiliate discovery disclaimer, and individual `Buy on [Merchant] →` buttons.
+- The header trigger is `components/cart/CartHeaderTrigger.tsx` and includes an animated count badge. Merchant actions obtain a short-lived signed token from `/api/v1/redirect/token` and navigate through `/out`; there is intentionally no payment or direct checkout path.
+- Prisma `Cart` rows expire after 30 days and can carry both `anonymousId` and a future authenticated `userId`. `CartItem` is a merchant/product snapshot with cascade deletion from its parent cart and a unique product per cart.
+
+## 12.8 Future Best Offer Notification System
+
+- `components/alerts/OfferAlertForm.tsx` is mounted below `/in/wishlist` at `#deal-alerts`. It collects email, optional phone, optional WhatsApp opt-in/number, category tags, deal brackets, and the mandatory DPDP consent statement.
+- Submission is validated in the client and again by `POST /api/alerts/subscribe`. The API upserts by normalized email, records `consentAt`, records `whatsappConsentAt` only for an explicit WhatsApp opt-in, creates a verification token, and logs the mock verification URL for the demo.
+- `GET /api/alerts/verify?token=...` sets `isVerified=true` and `isActive=true`; `GET /api/alerts/unsubscribe?email=...` sets `isActive=false` without deleting the subscription.
+- The success confirmation is a responsive modal. Production email/WhatsApp delivery is intentionally not claimed until a compliant provider and sender are configured.

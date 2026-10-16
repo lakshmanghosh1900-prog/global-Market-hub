@@ -1,11 +1,11 @@
-# Global Market Hub - Hybrid Mega Website Blueprint - Final v1
+# Global Market Hub - Hybrid Mega Website Blueprint - Final v1.1
 
 **Repo:** https://github.com/lakshmanghosh1900-prog/global-Market-hub.git
 **Track:** Agents & Automation agents
 **Stack:** Next.js 14 App Router, Postgres, BullMQ, Prisma
 
-## Status (2026-10-15)
-- Sections 11 and 12 are now in the doc, followed by build kickoff appendix.
+## Status (2026-10-16)
+- Sections 11 and 12 are now in the doc, including the v1.1 affiliate wishlist cart and future best-offer alert system, followed by the build kickoff appendix.
 - Live documentation check changed earlier assumptions.
 - Code has NOT been run or compiled yet.
 
@@ -48,6 +48,8 @@ Location: `docs/section-12-frontend.md`
 - Product card with merchant badge and freshness label
 - Shared listing pages for categories, hubs and price brackets
 - 12.9: Product detail page, JSON-LD, sitemaps - NOW SPECIFIED
+- 12.7: Affiliate wishlist cart with local 30-day persistence, merchant clickouts, and future account synchronization
+- 12.8: DPDP/WhatsApp-consented future best-offer notification subscriptions
 
 ### Appendix: Build Kickoff
 Location: `docs/appendix-build-kickoff.md`
@@ -61,3 +63,13 @@ Requirements from owner:
 3. Cuelinks account and API access status
 4. Domain and hosting choice
 5. Brand name, legal entity and grievance officer details
+
+## Section 12.7: Affiliate Wishlist Cart
+
+The cart is a saved comparison surface, never a checkout. Anonymous visitors use the `global_market_cart` browser key with a 30-day TTL and a hard limit of 50 unique products. The persisted Prisma `Cart` stores an optional `userId`, indexed `anonymousId`, timestamps, and `expiresAt`; `CartItem` stores a product snapshot so a future authenticated account can synchronize saved items even when the live catalog changes.
+
+The header cart trigger opens a responsive slide-over drawer. Each item shows its thumbnail, localized INR price, merchant badge, freshness/stock state, remove control, and an individual `Buy on [Merchant] →` action. Every merchant action requests a short-lived signed `/out` URL; Global Market Hub does not collect payment or provide a direct checkout.
+
+## Section 12.8: Future Best Offer Notification System
+
+`OfferAlertSubscription` stores email, optional phone and WhatsApp number, category and price-bracket preferences, consent timestamps, verification state, and soft-deactivation state. `POST /api/alerts/subscribe` requires the DPDP consent statement, records `consentAt`, records `whatsappConsentAt` only when WhatsApp is explicitly selected, and logs a mock verification URL for the buildathon. `GET /api/alerts/verify?token=...` activates a subscription and `GET /api/alerts/unsubscribe?email=...` soft-deactivates it. Production dispatch still requires a configured compliant email/WhatsApp provider.

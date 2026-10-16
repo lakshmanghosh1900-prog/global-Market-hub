@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CartHeaderTrigger } from "@/components/cart/CartHeaderTrigger";
 
 export function Header() {
   return (
@@ -21,7 +22,9 @@ export function Header() {
           <nav className="header-nav" aria-label="Primary navigation">
             <Link href="/in/under/under-49">Deals</Link>
             <Link href="/in/wishlist">Wishlist</Link>
+            <Link href="/in/wishlist#deal-alerts">Alerts</Link>
             <Link href="/in/account">Account</Link>
+            <CartHeaderTrigger />
           <span className="country-badge" aria-label="Current country: India">
             IN · India
           </span>

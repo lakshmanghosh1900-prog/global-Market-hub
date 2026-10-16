@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCommerceIdentity, setGuestCookie } from "@/lib/commerce-auth";
+import { freshnessFor, getOrCreateActiveCart, MAX_CART_ITEMS, merchantIdFor } from "@/lib/cart";
 import { prisma } from "@/lib/db";
 import { readCommerceState } from "@/lib/commerce-state";
 
 type MergeBody = {
-  cart?: Array<{ productId?: string; id?: string; quantity?: number }>;
+  cart?: Array<{ productId?: string; id?: string }>;
   wishlist?: Array<{ productId?: string; id?: string; targetPrice?: number }>;
 };
 
@@ -21,22 +22,67 @@ export async function POST(request: Request) {
 
   try {
     await prisma.$transaction(async (tx) => {
-      const cartIds = (body.cart ?? []).map((item) => item.productId ?? item.id).filter((id): id is string => Boolean(id));
+      const cartIds = Array.from(new Set((body.cart ?? []).map((item) => item.productId ?? item.id).filter((id): id is string => Boolean(id)))).slice(0, MAX_CART_ITEMS);
       const wishlistIds = (body.wishlist ?? []).map((item) => item.productId ?? item.id).filter((id): id is string => Boolean(id));
       const products = await tx.product.findMany({ where: { id: { in: Array.from(new Set([...cartIds, ...wishlistIds])) }, isDelisted: false } });
       const productById = new Map(products.map((product) => [product.id, product]));
 
-      for (const item of body.cart ?? []) {
-        const productId = item.productId ?? item.id;
-        const product = productId ? productById.get(productId) : null;
+      const canonicalCart = await getOrCreateActiveCart(tx, identity.userId, identity.sessionId);
+      let cartCount = await tx.cartItem.count({ where: { cartId: canonicalCart.id } });
+
+      for (const productId of cartIds) {
+        const product = productById.get(productId);
         if (!product) continue;
-        const quantity = Math.min(20, Math.max(1, Math.floor(item.quantity ?? 1)));
-        const existing = await tx.cartItem.findUnique({ where: { sessionId_productId: { sessionId: identity.sessionId, productId: product.id } } });
-        if (existing) {
-          await tx.cartItem.update({ where: { id: existing.id }, data: { quantity: Math.min(20, existing.quantity + quantity), userId: identity.userId } });
-        } else {
-          await tx.cartItem.create({ data: { sessionId: identity.sessionId, userId: identity.userId, productId: product.id, merchant: product.merchant, affiliateUrl: product.affiliateUrl, priceAtAdd: product.price, quantity } });
+        const existing = await tx.cartItem.findUnique({ where: { cartId_productId: { cartId: canonicalCart.id, productId: product.id } } });
+        if (existing) continue;
+        if (cartCount >= MAX_CART_ITEMS) break;
+        await tx.cartItem.create({
+          data: {
+            cartId: canonicalCart.id,
+            productId: product.id,
+            slug: product.slug,
+            merchantId: merchantIdFor(product.merchant),
+            title: product.title,
+            price: product.price,
+            currency: "INR",
+            imageUrl: product.image ?? "",
+            merchantName: product.merchant,
+            deepLink: product.affiliateUrl,
+            freshness: freshnessFor(product.inStock, product.lastSync),
+            inStock: product.inStock,
+          },
+        });
+        cartCount += 1;
+      }
+
+      const guestCart = await tx.cart.findFirst({
+        where: { anonymousId: identity.sessionId, id: { not: canonicalCart.id }, expiresAt: { gt: new Date() } },
+        include: { items: true },
+      });
+      if (guestCart) {
+        for (const item of guestCart.items) {
+          const existing = await tx.cartItem.findUnique({ where: { cartId_productId: { cartId: canonicalCart.id, productId: item.productId } } });
+          if (existing || cartCount >= MAX_CART_ITEMS) continue;
+          await tx.cartItem.create({
+            data: {
+              cartId: canonicalCart.id,
+              productId: item.productId,
+              slug: item.slug,
+              merchantId: item.merchantId,
+              title: item.title,
+              price: item.price,
+              currency: item.currency,
+              imageUrl: item.imageUrl,
+              merchantName: item.merchantName,
+              deepLink: item.deepLink,
+              freshness: item.freshness,
+              inStock: item.inStock,
+              createdAt: item.createdAt,
+            },
+          });
+          cartCount += 1;
         }
+        await tx.cart.delete({ where: { id: guestCart.id } });
       }
 
       for (const item of body.wishlist ?? []) {
@@ -50,21 +96,6 @@ export async function POST(request: Request) {
         });
       }
 
-      const [guestCart, userCart] = await Promise.all([
-        tx.cartItem.findMany({ where: { sessionId: identity.sessionId } }),
-        tx.cartItem.findMany({ where: { userId: identity.userId } }),
-      ]);
-      const userCartByProduct = new Map(userCart.map((item) => [item.productId, item]));
-      for (const guestItem of guestCart) {
-        const userItem = userCartByProduct.get(guestItem.productId);
-        if (userItem && userItem.id !== guestItem.id) {
-          await tx.cartItem.delete({ where: { id: userItem.id } });
-          await tx.cartItem.update({ where: { id: guestItem.id }, data: { userId: identity.userId, quantity: Math.min(20, guestItem.quantity + userItem.quantity) } });
-        } else {
-          await tx.cartItem.update({ where: { id: guestItem.id }, data: { userId: identity.userId } });
-        }
-      }
-
       const [guestWishlist, userWishlist] = await Promise.all([
         tx.wishlistItem.findMany({ where: { sessionId: identity.sessionId } }),
         tx.wishlistItem.findMany({ where: { userId: identity.userId } }),
@@ -72,9 +103,7 @@ export async function POST(request: Request) {
       const userWishlistByProduct = new Map(userWishlist.map((item) => [item.productId, item]));
       for (const guestItem of guestWishlist) {
         const userItem = userWishlistByProduct.get(guestItem.productId);
-        if (userItem && userItem.id !== guestItem.id) {
-          await tx.wishlistItem.delete({ where: { id: userItem.id } });
-        }
+        if (userItem && userItem.id !== guestItem.id) await tx.wishlistItem.delete({ where: { id: userItem.id } });
         await tx.wishlistItem.update({ where: { id: guestItem.id }, data: { userId: identity.userId } });
       }
     });
@@ -84,6 +113,6 @@ export async function POST(request: Request) {
     if (identity.needsCookie) setGuestCookie(response, identity.sessionId);
     return response;
   } catch {
-    return NextResponse.json({ error: "Commerce merge requires the production database migration" }, { status: 503 });
+    return NextResponse.json({ error: "Commerce merge requires the Section 12.7 database migration" }, { status: 503 });
   }
 }

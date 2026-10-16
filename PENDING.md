@@ -13,11 +13,14 @@
 - [ ] Flipkart feed expiry 10h refetch logic works
 
 ## Code / Deployment Follow-ups
-- [x] `npm run build` runs locally
+- [x] `npm run build` runs locally after the Section 12.7/12.8 implementation
+- [x] Affiliate wishlist cart uses `global_market_cart`, 30-day cleanup, 50-item cap, responsive drawer, and signed merchant CTAs
+- [x] Future best-offer subscription form and subscribe/verify/unsubscribe API routes are implemented
+- [ ] Run `npx prisma db push` or `npm run prisma:migrate:deploy` against the configured PostgreSQL database (local verification host currently unavailable)
 - [x] Vercel cron routes are protected by `CRON_SECRET`
 - [x] Product detail page, JSON-LD, sitemap and robots thin slice implemented
 - [ ] Configure production Flipkart, database, HMAC, legal and grievance values
-- [ ] Confirm Resend email sender before enabling production price-alert email
+- [ ] Confirm Resend email sender and compliant WhatsApp provider before enabling production best-offer notifications
 - [ ] BullMQ/Upstash queue worker can replace the Vercel cron thin slice in a later scaling pass
 
 ## SQL Fix for Cuelinks Seed (No Auto Catalog)

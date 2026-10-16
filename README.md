@@ -24,6 +24,7 @@ With no Flipkart token configured, the listing intentionally renders six local m
 - `/in/under/under-49` - Flipkart listing with cart, wishlist, chatbot and merchant clickouts
 - `/in/product/test-slug` - PDP, related products and JSON-LD example
 - `/in/wishlist` - anonymous local wishlist and price-alert controls
+- `/in/wishlist#deal-alerts` - DPDP-consented future best-offer subscription form
 - `/in/login` and `/in/account` - Supabase email OTP and merged cart, wishlist, and alerts
 - `/admin/curated-upload` - ADMIN_SECRET-protected Amazon/Cuelinks CSV import
 - `/admin/clicks` - ADMIN_SECRET-protected merchant/product click dashboard
@@ -31,11 +32,13 @@ With no Flipkart token configured, the listing intentionally renders six local m
 - `/api/cron/ingest` - Vercel six-hour ingest route, protected by `CRON_SECRET`
 - `/api/v1/ingest/status` - latest feed fetch, product count, and expired feed status
 
-The cart is an affiliate comparison cart. Checkout opens signed, allowlisted merchant redirects; Global Market Hub never collects payment. Amazon remains curated placeholder mode and Cuelinks remains deals-only until their catalog capabilities are verified.
+The cart is an affiliate wishlist/comparison cart. It persists anonymous saves for 30 days, caps each cart at 50 products, and opens one signed, allowlisted merchant redirect per item. Global Market Hub never collects payment or offers direct checkout. Amazon remains curated placeholder mode and Cuelinks remains deals-only until their catalog capabilities are verified.
+Alert subscriptions are stored with explicit DPDP consent timestamps. The buildathon logs a mock verification URL; production email and WhatsApp dispatch remain disabled until compliant providers are configured.
 
 ## Checks
 ```text
 npm run prisma:generate
+npx prisma db push
 npm run typecheck
 npm run lint
 npm test

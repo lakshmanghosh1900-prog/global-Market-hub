@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 import { getCommerceIdentity, setGuestCookie } from "@/lib/commerce-auth";
+import { findActiveCart, getOrCreateActiveCart, MAX_CART_ITEMS, merchantIdFor, freshnessFor } from "@/lib/cart";
 import { prisma } from "@/lib/db";
 
 type CartBody = { productId?: string; quantity?: number };
-
-function ownerWhere(userId: string | null, sessionId: string) {
-  return userId ? { OR: [{ userId }, { sessionId }] } : { sessionId };
-}
 
 export async function POST(request: Request) {
   const identity = await getCommerceIdentity();
@@ -16,17 +13,58 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  if (!body.productId || !Number.isFinite(body.quantity) || (body.quantity ?? 0) < 1) return NextResponse.json({ error: "productId and a positive quantity are required" }, { status: 400 });
+
+  if (!body.productId || (body.quantity !== undefined && (!Number.isFinite(body.quantity) || body.quantity < 1))) {
+    return NextResponse.json({ error: "productId is required" }, { status: 400 });
+  }
 
   try {
     const product = await prisma.product.findUnique({ where: { id: body.productId } });
-    if (!product || product.isDelisted || !product.inStock) return NextResponse.json({ error: "Product is unavailable" }, { status: 409 });
-    const item = await prisma.cartItem.upsert({
-      where: { sessionId_productId: { sessionId: identity.sessionId, productId: product.id } },
-      create: { sessionId: identity.sessionId, userId: identity.userId, productId: product.id, merchant: product.merchant, affiliateUrl: product.affiliateUrl, priceAtAdd: product.price, quantity: Math.min(20, Math.floor(body.quantity as number)) },
-      update: { userId: identity.userId, quantity: Math.min(20, Math.max(1, Math.floor(body.quantity as number))), priceAtAdd: product.price },
-    });
-    const response = NextResponse.json({ id: item.id, quantity: item.quantity });
+    if (!product || product.isDelisted) return NextResponse.json({ error: "Product is unavailable" }, { status: 409 });
+
+    const cart = await getOrCreateActiveCart(prisma, identity.userId, identity.sessionId);
+    const existing = await prisma.cartItem.findUnique({ where: { cartId_productId: { cartId: cart.id, productId: product.id } } });
+    if (!existing) {
+      const itemCount = await prisma.cartItem.count({ where: { cartId: cart.id } });
+      if (itemCount >= MAX_CART_ITEMS) {
+        return NextResponse.json({ error: "Your saved cart is full", code: "CART_LIMIT", maxItems: MAX_CART_ITEMS }, { status: 409 });
+      }
+    }
+
+    const item = existing
+      ? await prisma.cartItem.update({
+          where: { id: existing.id },
+          data: {
+            slug: product.slug,
+            merchantId: merchantIdFor(product.merchant),
+            title: product.title,
+            price: product.price,
+            currency: "INR",
+            imageUrl: product.image ?? "",
+            merchantName: product.merchant,
+            deepLink: product.affiliateUrl,
+            freshness: freshnessFor(product.inStock, product.lastSync),
+            inStock: product.inStock,
+          },
+        })
+      : await prisma.cartItem.create({
+          data: {
+            cartId: cart.id,
+            productId: product.id,
+            slug: product.slug,
+            merchantId: merchantIdFor(product.merchant),
+            title: product.title,
+            price: product.price,
+            currency: "INR",
+            imageUrl: product.image ?? "",
+            merchantName: product.merchant,
+            deepLink: product.affiliateUrl,
+            freshness: freshnessFor(product.inStock, product.lastSync),
+            inStock: product.inStock,
+          },
+        });
+
+    const response = NextResponse.json({ id: item.id, productId: item.productId, count: await prisma.cartItem.count({ where: { cartId: cart.id } }) });
     if (identity.needsCookie) setGuestCookie(response, identity.sessionId);
     return response;
   } catch {
@@ -41,10 +79,18 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const identity = await getCommerceIdentity();
   const productId = new URL(request.url).searchParams.get("productId");
-  if (!productId) return NextResponse.json({ error: "productId is required" }, { status: 400 });
   try {
-    await prisma.cartItem.deleteMany({ where: { ...ownerWhere(identity.userId, identity.sessionId), productId } });
-    return NextResponse.json({ ok: true });
+    const cart = await findActiveCart(prisma, identity.userId, identity.sessionId);
+    if (cart) {
+      if (productId) {
+        await prisma.cartItem.deleteMany({ where: { cartId: cart.id, productId } });
+      } else {
+        await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+      }
+    }
+    const response = NextResponse.json({ ok: true });
+    if (identity.needsCookie) setGuestCookie(response, identity.sessionId);
+    return response;
   } catch {
     return NextResponse.json({ ok: true });
   }

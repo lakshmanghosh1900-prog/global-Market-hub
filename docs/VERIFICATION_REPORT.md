@@ -1,8 +1,8 @@
 # Global Market Hub Verification Report
 
-**Verified revision:** `8ac7006` plus this verification report change
+**Verified revision:** Section 12.7/12.8 implementation working tree
 **Verification date:** 2026-10-16
-**Result:** **ALL CHECKS PASS**
+**Result:** **CODE CHECKS PASS; DATABASE PUSH PENDING**
 
 This report verifies the repository against `BLUEPRINT.md`, `docs/section-11-connectors.md`, `docs/section-12-frontend.md`, and `docs/appendix-build-kickoff.md`.
 
@@ -18,23 +18,25 @@ This report verifies the repository against `BLUEPRINT.md`, `docs/section-11-con
 | 2. Sprint 1 thin slice | `lib/products/upsert.ts`, `data/category_map.json` | Seven-day OOS retention, three-run delisting, GTIN matching, normalized title similarity, duplicate review marking, and 55-entry category mapping are implemented. | PASS |
 | 3. Global routing | `app/[country]/**`, `middleware.ts`, `app/page.tsx` | App Router country segments are active. `/under/under-49` rewrites to `/in/under/under-49`; the default root route redirects to the India listing. | PASS |
 | 3. Global routing | `components/header.tsx`, `components/bracket-strip.tsx` | Header, search, India badge, wishlist link, and horizontal Under ₹49/₹99/₹199/₹499 bracket strip are present. | PASS |
-| 4. Cart system | `prisma/schema.prisma`, `prisma/migrations/00000000000001_global_update/migration.sql` | `CartItem` includes id, nullable userId, sessionId, productId, merchant, affiliateUrl, priceAtAdd, quantity, and addedAt. | PASS |
-| 4. Cart system | `components/commerce-provider.tsx`, `components/cart-drawer.tsx` | Local cart persistence, right-side drawer, merchant grouping, quantity controls, total MRP, current total, savings, freshness warning, remove controls, and multi-merchant checkout are implemented. | PASS |
+| 4. Affiliate wishlist cart | `prisma/schema.prisma`, `prisma/migrations/00000000000004_affiliate_cart_offer_alerts/migration.sql` | `Cart` has optional user/anonymous ownership, timestamps, indexed anonymous ID, and 30-day expiry. `CartItem` is a cascade-deleted merchant/product snapshot with a unique product per cart. | PASS |
+| 4. Affiliate wishlist cart | `lib/cart-storage.ts`, `components/commerce-provider.tsx`, `components/cart/WishlistCartDrawer.tsx`, `components/cart/CartHeaderTrigger.tsx` | `global_market_cart` local persistence, automatic expiry cleanup, 50-item cap, animated header count, responsive drawer, required affiliate disclaimer, remove/Clear All actions, stock/freshness display, and individual signed merchant CTAs are implemented. | PASS |
 | 4. Cart system | `app/api/v1/redirect/token/route.ts`, `app/out/route.ts`, `lib/redirect.ts` | HMAC-SHA256 redirect tokens, timing-safe validation, HTTPS merchant allowlisting, server-side affiliate tracking, HTTP 307 redirects, and `ClickEvent` logging are implemented. | PASS |
 | 5. Wishlist and price alert | `prisma/schema.prisma`, `app/[country]/wishlist/page.tsx` | `WishlistItem` and `PriceAlert` models exist; `/in/wishlist` returns HTTP 200. | PASS |
 | 5. Wishlist and price alert | `components/wishlist-client.tsx`, `components/commerce-provider.tsx` | Anonymous localStorage persistence, heart toggle with `aria-pressed`, current versus added price, sparkline mock, target-price input, and alert save flow are implemented. | PASS |
-| 6. Chatbot support | `components/chat-widget.tsx`, `app/api/chat/route.ts`, `app/api/v1/search/route.ts` | Floating support widget, bracket/category links, search-backed fallback answers, affiliate explanation, and WhatsApp fallback are implemented. | PASS |
-| 6. Chatbot support | `prisma/schema.prisma` | `ChatSession` exists with session id, history JSON, and timestamps; browser history is persisted in localStorage. | PASS |
-| 7. PDP | `app/[country]/product/[slug]/page.tsx`, `/in/product/test-slug` | PDP route returns HTTP 200 for the smoke slug and supports one-hour ISR. | PASS |
-| 7. PDP | `components/product-detail.tsx` | Gallery, title, brand, INR price block, MRP, discount, stock, freshness, GTIN, merchant offers sorted cheapest-first in the offer presentation, rating placeholder, and related products are rendered. | PASS |
-| 7. PDP | `app/[country]/c/[category]/page.tsx`, `app/[country]/hubs/[hub]/page.tsx` | Category and hub listing routes support the documented shared listing architecture. | PASS |
-| 8. SEO | `components/product-detail.tsx`, `lib/seo.ts` | PDP emits Product, BreadcrumbList, and Organization JSON-LD with INR offer data, availability, brand, legal entity, grievance officer, and address values. | PASS |
-| 8. SEO | `app/sitemap.ts`, `app/sitemap.xml/route.ts`, `app/[country]/sitemap.xml/route.ts` | `/sitemap.xml` and `/in/sitemap.xml` return HTTP 200; the root output references the localized sitemap and the country sitemap contains product, category, hub, and bracket URLs. | PASS |
-| 8. SEO | `app/robots.ts` | `/robots.txt` returns HTTP 200 with a configured `Sitemap:` line and protected-route policies. | PASS |
-| 9. Cron and deploy | `app/api/cron/ingest/route.ts`, `app/api/cron/price-check/route.ts`, `app/api/cron/cuelinks-deals-sync/route.ts`, `app/api/cron/delist/route.ts`, `app/api/cron/category-reindex/route.ts` | Every cron endpoint returns HTTP 401 when the authorization header is absent and uses timing-safe `CRON_SECRET` validation. | PASS |
-| 9. Cron and deploy | `vercel.json` | Six-hour Flipkart ingest, hourly price check, twelve-hour Cuelinks deals sync, daily delist, and daily category reindex schedules are defined. | PASS |
-| 9. Cron and deploy | `.nvmrc`, `Dockerfile`, `.dockerignore`, `README.md`, `.env.example` | Node runtime pin, reproducible container build, environment-file exclusions, setup/run/test/deploy instructions, and all requested placeholder variables are present. | PASS |
-| 9. Connector modes | `data/amazon-curated.csv`, `scripts/import-curated.ts`, `lib/connectors/cuelinks.ts`, `app/[country]/hubs/[hub]/page.tsx` | Amazon curated CSV import mode and Cuelinks configurable deals-only mode are wired for the documented H1 architecture. | PASS |
+| 6. Future best-offer alerts | `prisma/schema.prisma`, `app/api/alerts/subscribe/route.ts`, `app/api/alerts/verify/route.ts`, `app/api/alerts/unsubscribe/route.ts` | `OfferAlertSubscription` stores normalized email, optional phone/WhatsApp, mandatory consent timestamps, preferences, verification token/state, and soft-deactivation. Subscribe/verify/unsubscribe APIs are implemented with validation and a mocked verification URL log. | PASS |
+| 6. Future best-offer alerts | `components/alerts/OfferAlertForm.tsx` | Responsive form includes email, optional mobile, explicit WhatsApp consent, category tags, deal brackets, mandatory DPDP consent, loading state, error state, and success modal. | PASS |
+| 7. Chatbot support | `components/chat-widget.tsx`, `app/api/chat/route.ts`, `app/api/v1/search/route.ts` | Floating support widget, bracket/category links, search-backed fallback answers, affiliate explanation, and WhatsApp fallback are implemented. | PASS |
+| 7. Chatbot support | `prisma/schema.prisma` | `ChatSession` exists with session id, history JSON, and timestamps; browser history is persisted in localStorage. | PASS |
+| 8. PDP | `app/[country]/product/[slug]/page.tsx`, `/in/product/test-slug` | PDP route returns HTTP 200 for the smoke slug and supports one-hour ISR. | PASS |
+| 8. PDP | `components/product-detail.tsx` | Gallery, title, brand, INR price block, MRP, discount, stock, freshness, GTIN, merchant offers sorted cheapest-first in the offer presentation, rating placeholder, and related products are rendered. | PASS |
+| 8. PDP | `app/[country]/c/[category]/page.tsx`, `app/[country]/hubs/[hub]/page.tsx` | Category and hub listing routes support the documented shared listing architecture. | PASS |
+| 9. SEO | `components/product-detail.tsx`, `lib/seo.ts` | PDP emits Product, BreadcrumbList, and Organization JSON-LD with INR offer data, availability, brand, legal entity, grievance officer, and address values. | PASS |
+| 9. SEO | `app/sitemap.ts`, `app/sitemap.xml/route.ts`, `app/[country]/sitemap.xml/route.ts` | `/sitemap.xml` and `/in/sitemap.xml` return HTTP 200; the root output references the localized sitemap and the country sitemap contains product, category, hub, and bracket URLs. | PASS |
+| 9. SEO | `app/robots.ts` | `/robots.txt` returns HTTP 200 with a configured `Sitemap:` line and protected-route policies. | PASS |
+| 10. Cron and deploy | `app/api/cron/ingest/route.ts`, `app/api/cron/price-check/route.ts`, `app/api/cron/cuelinks-deals-sync/route.ts`, `app/api/cron/delist/route.ts`, `app/api/cron/category-reindex/route.ts` | Every cron endpoint returns HTTP 401 when the authorization header is absent and uses timing-safe `CRON_SECRET` validation. | PASS |
+| 10. Cron and deploy | `vercel.json` | Six-hour Flipkart ingest, hourly price check, twelve-hour Cuelinks deals sync, daily delist, and daily category reindex schedules are defined. | PASS |
+| 10. Cron and deploy | `.nvmrc`, `Dockerfile`, `.dockerignore`, `README.md`, `.env.example` | Node runtime pin, reproducible container build, environment-file exclusions, setup/run/test/deploy instructions, and all requested placeholder variables are present. | PASS |
+| 10. Connector modes | `data/amazon-curated.csv`, `scripts/import-curated.ts`, `lib/connectors/cuelinks.ts`, `app/[country]/hubs/[hub]/page.tsx` | Amazon curated CSV import mode and Cuelinks configurable deals-only mode are wired for the documented H1 architecture. | PASS |
 
 ## Required command verification
 
@@ -44,7 +46,7 @@ This report verifies the repository against `BLUEPRINT.md`, `docs/section-11-con
 | `npm exec -- prisma validate` | PASS |
 | `npm run typecheck` | PASS |
 | `npm run lint` | PASS |
-| `npm test` | PASS — 5 tests passed |
+| `npm test` | PASS — 9 tests passed |
 | `npm run build` | PASS |
 
 ## Smoke verification
@@ -53,7 +55,7 @@ This report verifies the repository against `BLUEPRINT.md`, `docs/section-11-con
 |---|---|
 | `GET /in/under/under-49` | PASS — HTTP 200; Flipkart badge, freshness, INR pricing, and Add to Cart present |
 | `GET /in/product/test-slug` | PASS — HTTP 200; Product, BreadcrumbList, Organization, offers, and related-product markup present |
-| `GET /in/wishlist` | PASS — HTTP 200 |
+| `GET /in/wishlist` | PASS — HTTP 200; wishlist, alert form, and `#deal-alerts` are present |
 | `GET /sitemap.xml` | PASS — HTTP 200 |
 | `GET /in/sitemap.xml` | PASS — HTTP 200; product URL present |
 | `GET /robots.txt` | PASS — HTTP 200; Sitemap line present |
@@ -62,4 +64,4 @@ This report verifies the repository against `BLUEPRINT.md`, `docs/section-11-con
 | `POST /api/v1/redirect/token` followed by `/out` | PASS — signed merchant redirect returns HTTP 307 |
 | Unauthenticated cron requests for all five routes | PASS — HTTP 401 for each route |
 
-**Final verification status: ALL CHECKS PASS.**
+**Final verification status:** Code checks pass. `npx prisma db push` was attempted but could not connect to the configured local PostgreSQL server at `localhost:5432`; run it or `npm run prisma:migrate:deploy` when the database is available.

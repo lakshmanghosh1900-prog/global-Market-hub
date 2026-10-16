@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { clearCart, getCart } from "@/lib/cart-storage";
 
 const STORAGE_KEY = "gmh-commerce-v1";
 
@@ -38,18 +39,21 @@ export function LoginForm() {
       return;
     }
 
-    let local: { cart?: unknown[]; wishlist?: unknown[] } = {};
+    let local: { wishlist?: unknown[] } = {};
     try { local = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); } catch { /* ignore malformed local state */ }
+    const localCart = getCart();
     const mergeResponse = await fetch("/api/commerce/merge", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ cart: local.cart ?? [], wishlist: local.wishlist ?? [] }),
+      body: JSON.stringify({ cart: localCart, wishlist: local.wishlist ?? [] }),
     });
     setBusy(false);
     if (!mergeResponse.ok) {
       setNotice("You are signed in, but the server merge is waiting for the database migration.");
       return;
     }
+    clearCart();
+    localStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new Event("gmh-auth-changed"));
     window.location.assign("/in/account");
   };
