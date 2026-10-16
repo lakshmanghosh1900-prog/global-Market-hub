@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { addFlipkartAffiliateId } from "@/lib/affiliate";
+import { addFlipkartAffiliateId, addMerchantAffiliateTracking, AMAZON_ASSOCIATE_TAG } from "@/lib/affiliate";
 import { extractProducts, listFlipkartFeeds } from "@/lib/connectors/flipkart";
-import { isAllowedAffiliateUrl, isValidSignature, signatureFor } from "@/lib/redirect";
+import { createSignedRedirect, isAllowedAffiliateUrl, isValidSignature, signatureFor, trackedMerchantUrl } from "@/lib/redirect";
+import { GET as outboundRedirect } from "@/app/out/route";
 import { isPastOosRetention, normalizedTitle, sharedUpsert, shouldDelistMissingRuns, titleSimilarity } from "@/lib/products/upsert";
 
 test("affiliate tracking is added without dropping existing query parameters", () => {
@@ -15,6 +16,25 @@ test("affiliate tracking is added without dropping existing query parameters", (
     trackedUrl,
     "https://www.flipkart.com/item?pid=ABC123&affid=sprint1",
   );
+});
+
+test("every Amazon decorator call enforces the production Associates tag", () => {
+  const withoutQuery = addMerchantAffiliateTracking("https://www.amazon.in/dp/B000TEST", "Amazon-curated");
+  const withQuery = addMerchantAffiliateTracking("https://www.amazon.in/dp/B000TEST?ref_=nav&tag=wrong-20", "unknown-merchant");
+
+  assert.equal(new URL(withoutQuery).searchParams.get("tag"), AMAZON_ASSOCIATE_TAG);
+  assert.equal(new URL(withQuery).searchParams.get("tag"), AMAZON_ASSOCIATE_TAG);
+  assert.equal(new URL(trackedMerchantUrl("https://www.amazon.in/dp/B000TEST?psc=1")).searchParams.get("tag"), AMAZON_ASSOCIATE_TAG);
+});
+
+test("the /out handler decorates Amazon redirects even when the source URL has other query parameters", async () => {
+  const target = "https://www.amazon.in/dp/B000TEST?ref_=nav&psc=1";
+  const signedPath = createSignedRedirect(target, "amazon-product");
+  const response = outboundRedirect(new Request(`https://global-market-hub.test${signedPath}`));
+  assert.equal(response.status, 307);
+  const location = response.headers.get("location");
+  assert.ok(location);
+  assert.equal(new URL(location).searchParams.get("tag"), AMAZON_ASSOCIATE_TAG);
 });
 
 test("feed URLs are refetched from the list endpoint on a sync run", async () => {

@@ -15,7 +15,7 @@
 - Freshness label: "Updated 2h ago" from lastSync
 - Price in INR, MRP strike, discount %
 - Image, title, inStock
-- Clickout: /out?url=affiliate_url (logs click, redirects with tracking ID)
+- Clickout: `/out?url=affiliate_url` (logs click, redirects with tracking ID; every `amazon.in` destination is normalized to `tag=globalmarketh-21` while preserving other query parameters)
 
 ## 12.4 Shared Listing Pages
 - /in/under/[bracket] e.g. under-49, under-99

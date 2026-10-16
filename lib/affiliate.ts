@@ -1,5 +1,8 @@
 import { isConfiguredValue } from "@/lib/config";
 
+/** The production Amazon Associates tag used on every amazon.in outbound URL. */
+export const AMAZON_ASSOCIATE_TAG = "globalmarketh-21";
+
 export const addFlipkartAffiliateId = (
   productUrl: string,
   affiliateId = process.env.FLIPKART_AFFILIATE_ID,
@@ -26,9 +29,11 @@ export const addMerchantAffiliateTracking = (productUrl: string, merchant: strin
   if (merchant === "Flipkart" && isConfiguredValue(process.env.FLIPKART_AFFILIATE_ID)) {
     url.searchParams.set("affid", process.env.FLIPKART_AFFILIATE_ID as string);
   }
-  const amazonTag = process.env.AMAZON_ASSOCIATES_TAG || process.env.AMAZON_TAG;
-  if (merchant === "Amazon-curated" && isConfiguredValue(amazonTag)) {
-    url.searchParams.set("tag", amazonTag as string);
+
+  // Resolve from the URL as the source of truth. This prevents a caller with a
+  // stale or generic merchant label from bypassing Amazon decoration.
+  if (merchantFromHost(url.hostname) === "Amazon-curated") {
+    url.searchParams.set("tag", AMAZON_ASSOCIATE_TAG);
   }
   return url.toString();
 };
