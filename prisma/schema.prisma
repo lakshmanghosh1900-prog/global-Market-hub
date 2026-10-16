@@ -34,7 +34,6 @@ model Product {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  cartItems     CartItem[]
   wishlistItems WishlistItem[]
   priceAlerts   PriceAlert[]
   clickEvents   ClickEvent[]
@@ -45,20 +44,40 @@ model Product {
   @@index([gtin])
 }
 
+model Cart {
+  id          String     @id @default(cuid())
+  userId      String?
+  anonymousId String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  expiresAt   DateTime
+  items       CartItem[]
+
+  @@index([anonymousId])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
 model CartItem {
   id           String   @id @default(cuid())
-  userId       String?
-  sessionId    String
+  cartId       String
   productId    String
-  merchant     String
-  affiliateUrl String
-  priceAtAdd   Decimal  @db.Decimal(10, 2)
-  quantity     Int      @default(1)
-  addedAt      DateTime @default(now())
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  slug         String?
+  merchantId   String
+  title        String
+  price        Decimal  @db.Decimal(10, 2)
+  currency     String
+  imageUrl     String
+  merchantName String
+  deepLink     String
+  freshness    String
+  inStock      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  cart         Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
-  @@index([sessionId, addedAt])
-  @@unique([sessionId, productId])
+  @@unique([cartId, productId])
+  @@index([cartId, createdAt])
+  @@index([productId])
 }
 
 model WishlistItem {
@@ -161,4 +180,24 @@ model PriceBracket {
   createdAt DateTime @default(now())
 
   @@unique([country, slug])
+}
+
+model OfferAlertSubscription {
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  phoneNo             String?
+  whatsappNo          String?
+  hasWhatsappConsent  Boolean  @default(false)
+  consentAt           DateTime
+  whatsappConsentAt   DateTime?
+  categories          String[]
+  priceBrackets       String[]
+  maxPrice            Decimal? @db.Decimal(10, 2)
+  isVerified          Boolean  @default(false)
+  verificationToken   String?  @unique
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([isActive, isVerified])
 }
