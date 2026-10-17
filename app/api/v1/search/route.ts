@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchProducts } from "@/lib/products";
+import { searchProductsWithMeta } from "@/lib/products";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -9,14 +9,19 @@ export async function GET(request: Request) {
   const merchant = url.searchParams.get("merchant") ?? undefined;
   const freshness = url.searchParams.get("freshness") ?? undefined;
   const sort = (url.searchParams.get("sort") as "price_low" | "newest" | "relevance" | null) ?? "relevance";
-  const products = await searchProducts(query, bracket, category, { merchant, freshness, sort });
+  const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
+  const pageSize = Math.min(48, Math.max(1, Number(url.searchParams.get("pageSize") ?? "12") || 12));
+  const result = await searchProductsWithMeta(query, { bracket, category, merchant, freshness, sort, page, pageSize });
 
   return NextResponse.json({
     country: (url.searchParams.get("country") ?? "IN").toUpperCase(),
     query,
     filters: { category: category ?? null, bracket: bracket ?? null, merchant: merchant ?? null, freshness: freshness ?? null, sort },
-    count: products.length,
-    products: products.map((product) => ({
+    count: result.total,
+    page: result.page,
+    pageSize: result.pageSize,
+    totalPages: result.totalPages,
+    products: result.products.map((product) => ({
       id: product.id,
       slug: product.slug,
       title: product.title,
@@ -25,6 +30,7 @@ export async function GET(request: Request) {
       category: product.category,
       merchant: product.merchant,
       inStock: product.inStock,
+      isFixture: product.isFixture ?? false,
     })),
   }, { headers: { "cache-control": "public, s-maxage=300, stale-while-revalidate=3600" } });
 }
