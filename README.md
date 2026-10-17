@@ -25,7 +25,7 @@ India is the only active market until another country has a verified local catal
 5. Run `npm run dev` and open `http://localhost:3000`.
 6. When verified Flipkart credentials are configured, trigger `npm run sync:flipkart`.
 
-Without a reachable database or verified provider credentials, development mode renders clearly labelled local fixture cards for interface review. Fixtures cannot be saved as live offers or open seller clickouts. Production mode fails closed to honest empty states instead of presenting fixtures as inventory.
+Without a reachable database, or when the reachable database has no active product records yet, development mode renders clearly labelled local fixture cards for interface review. Fixtures cannot be saved as live offers or open seller clickouts. Production mode fails closed to honest empty states instead of presenting fixtures as inventory.
 
 ## Main routes
 

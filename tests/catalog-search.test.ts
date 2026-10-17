@@ -22,7 +22,9 @@ test("taxonomy aliases resolve to canonical categories without price-bracket lea
 
 test("search combines the complete price bracket and relevance query", async () => {
   const result = await searchProductsWithMeta("USB", { bracket: "under-49", sort: "relevance", pageSize: 3 });
+  assert.equal(result.total, result.products.length);
   assert.equal(result.total > 0, true);
+  assert.equal(result.products.every((product) => product.isFixture === true), true);
   assert.equal(result.products.length <= 3, true);
   assert.equal(result.products.every((product) => product.price <= 49), true);
   assert.equal(result.products[0]?.title.toLowerCase().includes("usb"), true);

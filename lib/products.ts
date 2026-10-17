@@ -22,6 +22,11 @@ export type ProductSearchResult = {
 
 export const SEARCH_PAGE_SIZE = 12;
 const supportedBrackets = new Set(["under-49", "under-99", "under-199", "under-499"]);
+const canUseDevelopmentFixtures = () => process.env.NODE_ENV !== "production";
+
+async function hasActiveCatalogProducts() {
+  return (await prisma.product.count({ where: { isDelisted: false } })) > 0;
+}
 
 const toListingProduct = (product: {
   id: string;
@@ -122,11 +127,16 @@ export async function getProductsForBracket(bracket: string) {
       },
       orderBy: [{ price: "asc" }, { lastSync: "desc" }],
     });
+    if (products.length === 0 && canUseDevelopmentFixtures()) {
+      if (!(await hasActiveCatalogProducts())) {
+        return mockFlipkartProducts.filter((product) => product.category === bracket || (supportedBrackets.has(bracket) && product.price <= Number(bracket.replace("under-", ""))));
+      }
+    }
     return products.map(toListingProduct);
   } catch (error) {
     console.warn("Catalog database unavailable; showing local fixture products.", error);
   }
-  return process.env.NODE_ENV !== "production"
+  return canUseDevelopmentFixtures()
     ? mockFlipkartProducts.filter((product) => product.category === bracket || (supportedBrackets.has(bracket) && product.price <= Number(bracket.replace("under-", ""))))
     : [];
 }
@@ -135,10 +145,12 @@ export async function getProductBySlug(slug: string) {
   const mock = mockFlipkartProducts.find((product) => product.slug === slug);
   try {
     const product = await prisma.product.findFirst({ where: { slug, isDelisted: false } });
-    return product ? toListingProduct(product) : process.env.NODE_ENV !== "production" ? mock ?? null : null;
+    if (product) return toListingProduct(product);
+    if (!canUseDevelopmentFixtures() || await hasActiveCatalogProducts()) return null;
+    return mock ?? null;
   } catch (error) {
     console.warn("Product lookup unavailable; using local fixture when available.", error);
-    return process.env.NODE_ENV !== "production" ? mock ?? null : null;
+    return canUseDevelopmentFixtures() ? mock ?? null : null;
   }
 }
 
@@ -225,11 +237,16 @@ export async function searchProductsWithMeta(query: string, options: SearchOptio
         } : {}),
       },
     });
+    if (total === 0 && canUseDevelopmentFixtures()) {
+      if (!(await hasActiveCatalogProducts())) {
+        return { products: fallbackProducts, total: totalFallback, page, pageSize, totalPages: Math.max(1, Math.ceil(totalFallback / pageSize)) };
+      }
+    }
     return { products: products.map(toListingProduct), total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
   } catch (error) {
     console.warn("Product search unavailable; using local fixture products.", error);
   }
-  const localProducts = process.env.NODE_ENV !== "production" ? fallbackProducts : [];
-  const localTotal = process.env.NODE_ENV !== "production" ? totalFallback : 0;
-  return { products: localProducts, total: localTotal, page, pageSize, totalPages: 1 };
+  const localProducts = canUseDevelopmentFixtures() ? fallbackProducts : [];
+  const localTotal = canUseDevelopmentFixtures() ? totalFallback : 0;
+  return { products: localProducts, total: localTotal, page, pageSize, totalPages: Math.max(1, Math.ceil(localTotal / pageSize)) };
 }
