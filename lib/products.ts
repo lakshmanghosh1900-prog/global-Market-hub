@@ -27,6 +27,7 @@ const toListingProduct = (product: {
   inStock: boolean;
   lastSync: Date;
   category: string;
+  isFixture?: boolean;
 }): ListingProduct => ({
   id: product.id,
   sku: product.sku,
@@ -44,6 +45,7 @@ const toListingProduct = (product: {
   inStock: product.inStock,
   lastSync: product.lastSync,
   category: product.category,
+  isFixture: product.isFixture ?? false,
 });
 
 const mockMatches = (query: string, options: SearchOptions = {}) => {

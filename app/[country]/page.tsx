@@ -1,7 +1,9 @@
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { MarketHomePage } from "@/components/market-home";
 import { isActiveCountry } from "@/lib/catalog-config";
 
 export default function CountryHomePage({ params }: { params: { country: string } }) {
-  if (!isActiveCountry(params.country)) redirect("/in/under/under-49");
-  redirect(`/${params.country.toLowerCase()}/under/under-49`);
+  const country = params.country.toLowerCase();
+  if (!isActiveCountry(country)) notFound();
+  return <MarketHomePage country={country} />;
 }

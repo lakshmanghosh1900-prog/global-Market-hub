@@ -6,6 +6,7 @@ const mockProduct = (
   const { hoursAgo, ...rest } = product;
   return {
     ...rest,
+    isFixture: true,
     lastSync: new Date(Date.now() - hoursAgo * 60 * 60 * 1000),
   };
 };
