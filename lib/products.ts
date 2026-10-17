@@ -126,7 +126,9 @@ export async function getProductsForBracket(bracket: string) {
   } catch (error) {
     console.warn("Catalog database unavailable; showing local fixture products.", error);
   }
-  return mockFlipkartProducts.filter((product) => product.category === bracket || (supportedBrackets.has(bracket) && product.price <= Number(bracket.replace("under-", ""))));
+  return process.env.NODE_ENV !== "production"
+    ? mockFlipkartProducts.filter((product) => product.category === bracket || (supportedBrackets.has(bracket) && product.price <= Number(bracket.replace("under-", ""))))
+    : [];
 }
 
 export async function getProductBySlug(slug: string) {
@@ -136,7 +138,25 @@ export async function getProductBySlug(slug: string) {
     return product ? toListingProduct(product) : process.env.NODE_ENV !== "production" ? mock ?? null : null;
   } catch (error) {
     console.warn("Product lookup unavailable; using local fixture when available.", error);
-    return mock ?? null;
+    return process.env.NODE_ENV !== "production" ? mock ?? null : null;
+  }
+}
+
+export async function getProductOffers(product: ListingProduct) {
+  if (product.isFixture) return [product];
+  try {
+    const equivalentWhere = product.gtin
+      ? { gtin: product.gtin }
+      : { title: product.title, ...(product.brand ? { brand: product.brand } : {}) };
+    const matches = await prisma.product.findMany({
+      where: { ...equivalentWhere, isDelisted: false },
+      orderBy: [{ price: "asc" }, { lastSync: "desc" }],
+    });
+    const offers = matches.map(toListingProduct);
+    return offers.length ? offers : [product];
+  } catch (error) {
+    console.warn("Offer comparison unavailable; showing the primary merchant offer.", error);
+    return [product];
   }
 }
 
@@ -209,5 +229,7 @@ export async function searchProductsWithMeta(query: string, options: SearchOptio
   } catch (error) {
     console.warn("Product search unavailable; using local fixture products.", error);
   }
-  return { products: fallbackProducts, total: totalFallback, page, pageSize, totalPages: Math.max(1, Math.ceil(totalFallback / pageSize)) };
+  const localProducts = process.env.NODE_ENV !== "production" ? fallbackProducts : [];
+  const localTotal = process.env.NODE_ENV !== "production" ? totalFallback : 0;
+  return { products: localProducts, total: localTotal, page, pageSize, totalPages: 1 };
 }

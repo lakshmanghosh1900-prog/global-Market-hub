@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { isAllowedAffiliateUrl } from "@/lib/redirect";
 
 export type SyncProduct = {
   sku: string;
@@ -62,6 +63,9 @@ export async function sharedUpsert(
 ) {
   if (products.length === 0) {
     throw new Error("Refusing to apply an empty catalog sync");
+  }
+  if (products.some((product) => !isAllowedAffiliateUrl(product.affiliateUrl))) {
+    throw new Error("Refusing catalog sync with an invalid merchant destination");
   }
 
   const now = new Date();

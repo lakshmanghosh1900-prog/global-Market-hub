@@ -189,11 +189,18 @@ const mapCategory = (value: string | null, price: number) => {
   const keywordMatch = keywordMap.find(([words]) => words.some((word) => segments.includes(word)));
   if (keywordMatch) return keywordMatch[1];
 
-  if (price <= 49) return "under-49";
-  if (price <= 99) return "under-99";
-  if (price <= 199) return "under-199";
-  if (price <= 499) return "under-499";
+  // Price brackets are calculated by listing filters. A missing source
+  // category must not turn a cheap product into a fake taxonomy category.
   return "electronics";
+};
+
+const isExactFlipkartProductUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && (url.hostname === "flipkart.com" || url.hostname.endsWith(".flipkart.com")) && url.pathname !== "/";
+  } catch {
+    return false;
+  }
 };
 
 const normalizeProduct = (record: JsonRecord): SyncProduct | null => {
@@ -202,7 +209,7 @@ const normalizeProduct = (record: JsonRecord): SyncProduct | null => {
   const price = firstNumber(record, ["price", "sellingPrice", "selling_price"]);
   const affiliateUrl = firstString(record, ["productUrl", "product_url", "url"]);
 
-  if (!sku || !title || price === null || !affiliateUrl) {
+  if (!sku || !title || price === null || !affiliateUrl || !isExactFlipkartProductUrl(affiliateUrl)) {
     return null;
   }
 

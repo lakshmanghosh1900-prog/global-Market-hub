@@ -6,6 +6,8 @@ import { createSignedRedirect, isAllowedAffiliateUrl, isValidSignature, signatur
 import { GET as outboundRedirect } from "@/app/out/route";
 import { isPastOosRetention, normalizedTitle, sharedUpsert, shouldDelistMissingRuns, titleSimilarity } from "@/lib/products/upsert";
 
+process.env.HMAC_SECRET = "unit-test-hmac-secret";
+
 test("affiliate tracking is added without dropping existing query parameters", () => {
   const trackedUrl = addFlipkartAffiliateId(
     "https://www.flipkart.com/item?pid=ABC123",
@@ -27,14 +29,11 @@ test("every Amazon decorator call enforces the production Associates tag", () =>
   assert.equal(new URL(trackedMerchantUrl("https://www.amazon.in/dp/B000TEST?psc=1")).searchParams.get("tag"), AMAZON_ASSOCIATE_TAG);
 });
 
-test("the /out handler decorates Amazon redirects even when the source URL has other query parameters", async () => {
+test("the /out handler requires an authoritative product identifier", async () => {
   const target = "https://www.amazon.in/dp/B000TEST?ref_=nav&psc=1";
-  const signedPath = createSignedRedirect(target, "amazon-product");
-  const response = outboundRedirect(new Request(`https://global-market-hub.test${signedPath}`));
-  assert.equal(response.status, 307);
-  const location = response.headers.get("location");
-  assert.ok(location);
-  assert.equal(new URL(location).searchParams.get("tag"), AMAZON_ASSOCIATE_TAG);
+  const signedPath = createSignedRedirect(target);
+  const response = await outboundRedirect(new Request(`https://global-market-hub.test${signedPath}`));
+  assert.equal(response.status, 401);
 });
 
 test("feed URLs are refetched from the list endpoint on a sync run", async () => {

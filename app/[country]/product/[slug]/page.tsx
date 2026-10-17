@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/header";
 import { ProductDetail } from "@/components/product-detail";
-import { getProductBySlug, searchProducts } from "@/lib/products";
+import { getProductBySlug, getProductOffers, searchProducts } from "@/lib/products";
 import { isActiveCountry } from "@/lib/catalog-config";
 
 export const revalidate = 60 * 60;
@@ -17,6 +17,7 @@ export default async function ProductPage({ params }: { params: { country: strin
   if (!isActiveCountry(params.country)) notFound();
   const product = await getProductBySlug(params.slug);
   if (!product) notFound();
+  const offers = await getProductOffers(product);
   const related = (await searchProducts("", undefined, product.category)).filter((item) => item.id !== product.id).slice(0, 3);
-  return <><Header /><ProductDetail product={product} related={related} country={params.country.toLowerCase()} /></>;
+  return <><Header country={params.country.toLowerCase()} /><ProductDetail product={product} offers={offers} related={related} country={params.country.toLowerCase()} /></>;
 }

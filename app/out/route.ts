@@ -1,31 +1,53 @@
 import { NextResponse } from "next/server";
 import { merchantFromHost } from "@/lib/affiliate";
-import { isAllowedAffiliateUrl, isValidSignature, trackedMerchantUrl } from "@/lib/redirect";
+import { hasRedirectSecret, isAllowedAffiliateUrl, isValidSignature, trackedMerchantUrl } from "@/lib/redirect";
 import { prisma } from "@/lib/db";
 
-export function GET(request: Request) {
+export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const target = requestUrl.searchParams.get("url");
   const timestamp = Number(requestUrl.searchParams.get("ts"));
   const signature = requestUrl.searchParams.get("sig");
   const productId = requestUrl.searchParams.get("pid") ?? undefined;
 
-  if (!target || !signature || !Number.isFinite(timestamp)) {
+  if (!target || !signature || !productId || !Number.isFinite(timestamp)) {
     return NextResponse.json({ error: "Missing redirect token" }, { status: 401 });
   }
 
-  if (!isAllowedAffiliateUrl(target) || !isValidSignature(timestamp, target, signature, productId)) {
+  if (!hasRedirectSecret()) {
+    return NextResponse.json({ error: "Secure seller redirects are not configured" }, { status: 503 });
+  }
+
+  let validSignature = false;
+  try {
+    validSignature = isValidSignature(timestamp, target, signature, productId);
+  } catch {
+    return NextResponse.json({ error: "Secure seller redirects are not configured" }, { status: 503 });
+  }
+  if (!isAllowedAffiliateUrl(target) || !validSignature) {
     return NextResponse.json({ error: "Invalid or expired redirect token" }, { status: 403 });
   }
 
   const targetUrl = new URL(target);
-  const merchant = merchantFromHost(targetUrl.hostname) ?? "Unknown";
-  void prisma.product.findUnique({ where: { id: productId ?? "" }, select: { id: true } })
-    .catch(() => null)
-    .then((product) => prisma.clickEvent.create({
-      data: { merchant, targetHost: targetUrl.hostname, productId: product?.id },
-    }))
-    .catch(() => undefined);
+  const merchant = merchantFromHost(targetUrl.hostname);
+  if (!merchant) return NextResponse.json({ error: "Unsupported seller" }, { status: 403 });
+
+  let product;
+  try {
+    product = await prisma.product.findFirst({
+      where: { id: productId, isDelisted: false, inStock: true },
+      select: { id: true, affiliateUrl: true, merchant: true, isFixture: true },
+    });
+  } catch {
+    return NextResponse.json({ error: "Seller offers are temporarily unavailable" }, { status: 503 });
+  }
+  if (!product || product.isFixture || product.merchant !== merchant || product.affiliateUrl !== target) {
+    return NextResponse.json({ error: "Seller destination does not match the live product offer" }, { status: 403 });
+  }
+
+  void prisma.clickEvent.create({
+    data: { merchant, targetHost: targetUrl.hostname, productId: product.id },
+  }).catch(() => undefined);
 
   return NextResponse.redirect(trackedMerchantUrl(target), 307);
 }

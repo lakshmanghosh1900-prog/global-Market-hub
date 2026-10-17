@@ -1,7 +1,7 @@
 import type { ListingProduct } from "@/lib/types";
 import Link from "next/link";
 import { ProductActions } from "@/components/product-actions";
-import Image from "next/image";
+import { SafeImage } from "@/components/safe-image";
 import { AffiliateDisclosure } from "@/components/affiliate-disclosure";
 
 const currency = new Intl.NumberFormat("en-IN", {
@@ -31,7 +31,7 @@ export function ProductCard({ product, country = "in" }: { product: ListingProdu
     <article className="product-card">
       <Link className="product-image-wrap" href={`/${country}/product/${product.slug}`} aria-label={`View ${product.title}`}>
         {product.image ? (
-          <Image className="product-image" src={product.image} alt="" width={640} height={640} sizes="(max-width: 700px) 50vw, 25vw" />
+          <SafeImage className="product-image" src={product.image} alt="" width={640} height={640} sizes="(max-width: 700px) 50vw, 25vw" fallbackLabel="Product image unavailable" />
         ) : (
           <span className="product-image-fallback">GMH</span>
         )}
