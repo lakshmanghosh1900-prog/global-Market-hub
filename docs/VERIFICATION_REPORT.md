@@ -1,67 +1,82 @@
 # Global Market Hub Verification Report
 
-**Verified revision:** Section 12.7/12.8 implementation working tree
-**Verification date:** 2026-10-16
-**Result:** **CODE CHECKS PASS; DATABASE PUSH PENDING**
+**Verification date:** 2026-10-17  
+**Working branch:** `fix/global-market-hub-final-completion`  
+**Status:** **CODE VERIFIED; DATABASE AND LIVE PROVIDERS BLOCKED**
 
-This report verifies the repository against `BLUEPRINT.md`, `docs/section-11-connectors.md`, `docs/section-12-frontend.md`, and `docs/appendix-build-kickoff.md`.
+This report records checks run against the current working tree. It replaces the historical report that described an earlier implementation and a different test count.
 
-| Task | File / Route | Verification | Status |
-|---|---|---|---|
-| 1. Blueprint foundation | `BLUEPRINT.md`, `docs/section-11-connectors.md`, `docs/section-12-frontend.md`, `docs/appendix-build-kickoff.md`, `PENDING.md`, `.env.example` | All required blueprint, connector, frontend, kickoff, pending, and environment files are present and tracked. | PASS |
-| 1. Blueprint foundation | `data/countries.json` | 38 countries are defined; `in` / India is the single active country. | PASS |
-| 1. Blueprint foundation | `data/catalog.ts` | 55 taxonomy terms and 20 merchant metadata records are defined. Flipkart is active; Amazon-curated, Cuelinks, and the remaining merchants are pending modes. | PASS |
-| 1. Blueprint foundation | `data/catalog.ts`, `scripts/seed-catalog.ts` | India price brackets Under ₹49, ₹99, ₹199, and ₹499 are seedable through `npm run seed:catalog` and the compatibility alias `npm run seed:merchants`. | PASS |
-| 2. Sprint 1 thin slice | `/in/under/under-49`, `app/[country]/under/[bracket]/page.tsx` | The route returns HTTP 200 and mock mode renders six Flipkart products. | PASS |
-| 2. Sprint 1 thin slice | `components/product-card.tsx`, `components/product-actions.tsx` | Product cards render merchant badge, freshness label, INR price, MRP, discount, stock state, Add to Cart, wishlist heart, and View Offer controls. | PASS |
-| 2. Sprint 1 thin slice | `lib/connectors/flipkart.ts` | Feed-list requests run on every sync, `FLIPKART_FEED_EXPIRY_HOURS` is 10, `Fk-Affiliate-Id` and `Fk-Affiliate-Token` headers are present, `/product/:id` and `/changes?since=` helpers are implemented, and feed URLs receive tracking injection. | PASS |
-| 2. Sprint 1 thin slice | `lib/products/upsert.ts`, `data/category_map.json` | Seven-day OOS retention, three-run delisting, GTIN matching, normalized title similarity, duplicate review marking, and 55-entry category mapping are implemented. | PASS |
-| 3. Global routing | `app/[country]/**`, `middleware.ts`, `app/page.tsx` | App Router country segments are active. `/under/under-49` rewrites to `/in/under/under-49`; the default root route redirects to the India listing. | PASS |
-| 3. Global routing | `components/header.tsx`, `components/bracket-strip.tsx` | Header, search, India badge, wishlist link, and horizontal Under ₹49/₹99/₹199/₹499 bracket strip are present. | PASS |
-| 4. Affiliate wishlist cart | `prisma/schema.prisma`, `prisma/migrations/00000000000004_affiliate_cart_offer_alerts/migration.sql` | `Cart` has optional user/anonymous ownership, timestamps, indexed anonymous ID, and 30-day expiry. `CartItem` is a cascade-deleted merchant/product snapshot with a unique product per cart. | PASS |
-| 4. Affiliate wishlist cart | `lib/cart-storage.ts`, `components/commerce-provider.tsx`, `components/cart/WishlistCartDrawer.tsx`, `components/cart/CartHeaderTrigger.tsx` | `global_market_cart` local persistence, automatic expiry cleanup, 50-item cap, animated header count, responsive drawer, required affiliate disclaimer, remove/Clear All actions, stock/freshness display, and individual signed merchant CTAs are implemented. | PASS |
-| 4. Cart system | `app/api/v1/redirect/token/route.ts`, `app/out/route.ts`, `lib/redirect.ts` | HMAC-SHA256 redirect tokens, timing-safe validation, HTTPS merchant allowlisting, server-side affiliate tracking, HTTP 307 redirects, and `ClickEvent` logging are implemented. | PASS |
-| 5. Wishlist and price alert | `prisma/schema.prisma`, `app/[country]/wishlist/page.tsx` | `WishlistItem` and `PriceAlert` models exist; `/in/wishlist` returns HTTP 200. | PASS |
-| 5. Wishlist and price alert | `components/wishlist-client.tsx`, `components/commerce-provider.tsx` | Anonymous localStorage persistence, heart toggle with `aria-pressed`, current versus added price, sparkline mock, target-price input, and alert save flow are implemented. | PASS |
-| 6. Future best-offer alerts | `prisma/schema.prisma`, `app/api/alerts/subscribe/route.ts`, `app/api/alerts/verify/route.ts`, `app/api/alerts/unsubscribe/route.ts` | `OfferAlertSubscription` stores normalized email, optional phone/WhatsApp, mandatory consent timestamps, preferences, verification token/state, and soft-deactivation. Subscribe/verify/unsubscribe APIs are implemented with validation and a mocked verification URL log. | PASS |
-| 6. Future best-offer alerts | `components/alerts/OfferAlertForm.tsx` | Responsive form includes email, optional mobile, explicit WhatsApp consent, category tags, deal brackets, mandatory DPDP consent, loading state, error state, and success modal. | PASS |
-| 7. Chatbot support | `components/chat-widget.tsx`, `app/api/chat/route.ts`, `app/api/v1/search/route.ts` | Floating support widget, bracket/category links, search-backed fallback answers, affiliate explanation, and WhatsApp fallback are implemented. | PASS |
-| 7. Chatbot support | `prisma/schema.prisma` | `ChatSession` exists with session id, history JSON, and timestamps; browser history is persisted in localStorage. | PASS |
-| 8. PDP | `app/[country]/product/[slug]/page.tsx`, `/in/product/test-slug` | PDP route returns HTTP 200 for the smoke slug and supports one-hour ISR. | PASS |
-| 8. PDP | `components/product-detail.tsx` | Gallery, title, brand, INR price block, MRP, discount, stock, freshness, GTIN, merchant offers sorted cheapest-first in the offer presentation, rating placeholder, and related products are rendered. | PASS |
-| 8. PDP | `app/[country]/c/[category]/page.tsx`, `app/[country]/hubs/[hub]/page.tsx` | Category and hub listing routes support the documented shared listing architecture. | PASS |
-| 9. SEO | `components/product-detail.tsx`, `lib/seo.ts` | PDP emits Product, BreadcrumbList, and Organization JSON-LD with INR offer data, availability, brand, legal entity, grievance officer, and address values. | PASS |
-| 9. SEO | `app/sitemap.ts`, `app/sitemap.xml/route.ts`, `app/[country]/sitemap.xml/route.ts` | `/sitemap.xml` and `/in/sitemap.xml` return HTTP 200; the root output references the localized sitemap and the country sitemap contains product, category, hub, and bracket URLs. | PASS |
-| 9. SEO | `app/robots.ts` | `/robots.txt` returns HTTP 200 with a configured `Sitemap:` line and protected-route policies. | PASS |
-| 10. Cron and deploy | `app/api/cron/ingest/route.ts`, `app/api/cron/price-check/route.ts`, `app/api/cron/cuelinks-deals-sync/route.ts`, `app/api/cron/delist/route.ts`, `app/api/cron/category-reindex/route.ts` | Every cron endpoint returns HTTP 401 when the authorization header is absent and uses timing-safe `CRON_SECRET` validation. | PASS |
-| 10. Cron and deploy | `vercel.json` | Six-hour Flipkart ingest, hourly price check, twelve-hour Cuelinks deals sync, daily delist, and daily category reindex schedules are defined. | PASS |
-| 10. Cron and deploy | `.nvmrc`, `Dockerfile`, `.dockerignore`, `README.md`, `.env.example` | Node runtime pin, reproducible container build, environment-file exclusions, setup/run/test/deploy instructions, and all requested placeholder variables are present. | PASS |
-| 10. Connector modes | `data/amazon-curated.csv`, `scripts/import-curated.ts`, `lib/connectors/cuelinks.ts`, `app/[country]/hubs/[hub]/page.tsx` | Amazon curated CSV import mode and Cuelinks configurable deals-only mode are wired for the documented H1 architecture. | PASS |
+## Implemented and inspected
+
+| Area | Evidence | Result |
+|---|---|---|
+| Global homepage | `app/page.tsx`, `components/market-home.tsx` | `/` is a marketplace homepage with search, category discovery, price ranges, catalog preview, merchant modes and affiliate disclosure. |
+| India homepage | `app/[country]/page.tsx` | `/in` is a localized India landing page and no longer redirects to Under ₹49. |
+| Market routing | `lib/countries.ts`, `components/country-selector.tsx`, `middleware.ts` | India is active; 37 countries are coming soon. Inactive markets render a preview state and do not fall through to Indian inventory. |
+| Taxonomy | `lib/taxonomy.ts`, `components/category-directory.tsx`, `app/[country]/categories/page.tsx` | Canonical categories, aliases, grouped directory and category breadcrumbs are implemented. |
+| Search | `lib/products.ts`, `app/[country]/search/page.tsx`, `/api/v1/search` | Query, complete category list, four canonical price brackets, merchant, freshness, sorting, URL persistence, result counts and pagination are implemented. |
+| Catalog seed | `data/catalog.ts` | Country, taxonomy, merchant and price-bracket seed uses transactional upserts and is safe to rerun. Live database execution is blocked by unavailable PostgreSQL. |
+| Product pages | `components/product-detail.tsx`, `components/safe-image.tsx` | Product facts, category breadcrumbs, offer comparison, image fallback, JSON-LD and fixture disclosure are implemented. |
+| Seller redirects | `app/api/v1/redirect/token/route.ts`, `app/out/route.ts`, `lib/redirect.ts` | Browser input cannot choose a destination. The server loads the product, rejects fixtures/generic homepages/unavailable offers, validates the exact merchant URL, signs short-lived tokens and fails closed without HMAC. |
+| Saved cart/wishlist | `components/commerce-provider.tsx`, `components/cart/WishlistCartDrawer.tsx`, `components/wishlist-client.tsx` | Local persistence, 30-day expiry, 50-item cap, duplicate handling, keyboard Escape close, error states, fixture blocking and wishlist controls are implemented. |
+| Chat | `lib/chat-knowledge.ts`, `app/api/chat`, `components/chat-widget.tsx` | Search-backed answers, FAQ knowledge, category/price links and structured recommendation cards render in the client. No LLM provider is claimed as configured. |
+| Alerts/security | `lib/offer-alerts.ts`, alert routes, `00000000000006_alert_unsubscribe_tokens` | Consent boundaries, verification tokens and tokenized single-use unsubscribe are implemented. Price matches are not reported as delivered notifications. Admin URL secrets are rejected. |
+| SEO | `app/sitemap.ts`, localized sitemap route, `app/robots.ts`, `lib/seo.ts` | One root sitemap owner remains. Localized sitemap routes only active markets and excludes fixture products. Missing production base URL does not become a production localhost canonical. |
 
 ## Required command verification
 
+Commands run from the repository root:
+
 | Command | Result |
 |---|---|
-| `npm run prisma:generate` | PASS |
-| `npm exec -- prisma validate` | PASS |
+| `npm run prisma:generate` | PASS — Prisma Client 5.22.0 generated |
+| `npm exec -- prisma validate` | PASS — schema valid |
+| `npm exec -- prisma migrate status` | **BLOCKED_ENVIRONMENT** — PostgreSQL at `localhost:5432` is unreachable (P1001) |
+| `npm run seed:catalog` | **BLOCKED_ENVIRONMENT** — same unavailable PostgreSQL server; no reset or destructive DB command was run |
 | `npm run typecheck` | PASS |
-| `npm run lint` | PASS |
-| `npm test` | PASS — 9 tests passed |
-| `npm run build` | PASS |
+| `npm run lint` | PASS — no ESLint warnings or errors |
+| `npm test` | PASS — **22 tests passed**, 0 failed |
+| `npm run build` | PASS — Next.js production build completed |
+| `git diff --check` | PASS for intentional source/documentation changes; the pre-existing package-lock line-ending diff is not staged |
 
-## Smoke verification
+The unit suite covers cart expiry/cap/dedupe, country registry, taxonomy aliases, bracket search, structured chat, redirect restrictions, HMAC placeholder behavior, Flipkart parsing/feed refetch, upsert policy, alert validation/consent/verification/unsubscribe, and authoritative redirect requirements.
 
-| Smoke check | Result |
+## HTTP smoke verification
+
+With the development server running at `http://localhost:3000` and no database/provider credentials:
+
+| Request | Result |
 |---|---|
-| `GET /in/under/under-49` | PASS — HTTP 200; Flipkart badge, freshness, INR pricing, and Add to Cart present |
-| `GET /in/product/test-slug` | PASS — HTTP 200; Product, BreadcrumbList, Organization, offers, and related-product markup present |
-| `GET /in/wishlist` | PASS — HTTP 200; wishlist, alert form, and `#deal-alerts` are present |
-| `GET /sitemap.xml` | PASS — HTTP 200 |
-| `GET /in/sitemap.xml` | PASS — HTTP 200; product URL present |
-| `GET /robots.txt` | PASS — HTTP 200; Sitemap line present |
-| `GET /under/under-49` | PASS — HTTP 200 through country middleware fallback |
-| `POST /api/chat` with `find products under 49` | PASS — HTTP 200; mock results returned |
-| `POST /api/v1/redirect/token` followed by `/out` | PASS — signed merchant redirect returns HTTP 307 |
-| Unauthenticated cron requests for all five routes | PASS — HTTP 401 for each route |
+| `GET /` | PASS — 200; global homepage markers present |
+| `GET /in` | PASS — 200; India homepage |
+| `GET /ae` | PASS — 200; coming-soon market preview |
+| `GET /ae/search?q=phone` | PASS — 200; inactive-market preview, not Indian results |
+| `GET /in/categories` | PASS — 200 |
+| `GET /in/search?q=USB&bracket=under-49` | PASS — 200; URL filters and fixture disclosure present in development mode |
+| `GET /in/c/electronics` | PASS — 200 |
+| `GET /in/c/fashion` | PASS — 200 |
+| `GET /in/under/under-49`, `/under-99`, `/under-199`, `/under-499` | PASS — 200 |
+| `GET /in/product/test-slug` | PASS — 200; preview PDP and blocked seller action |
+| `GET /in/wishlist` | PASS — 200 |
+| `GET /in/account` | PASS — 200 |
+| `GET /sitemap.xml` | PASS — 200; well-formed XML URL set pointing to `/in/sitemap.xml` |
+| `GET /in/sitemap.xml` | PASS — 200; fixture products excluded |
+| `GET /robots.txt` | PASS — 200; sitemap reference present |
+| `GET /api/v1/search?q=USB&country=in&bracket=under-49&page=1` | PASS — 200; structured count and pagination response |
+| `POST /api/chat` with `show electronics under 49` | PASS — 200; structured answer/links/recommendations response |
+| `POST /api/v1/redirect/token` with fixture ID | PASS — 503/blocked; no live database or eligible fixture offer |
+| `GET /out` without authoritative product ID | PASS — 401 |
 
-**Final verification status:** Code checks pass. `npx prisma db push` was attempted but could not connect to the configured local PostgreSQL server at `localhost:5432`; run it or `npm run prisma:migrate:deploy` when the database is available.
+## External verification still blocked
+
+- No PostgreSQL server is reachable in this environment, so migration status, catalog row counts, repeat seed execution and database-backed offer comparisons were not live-verified.
+- Flipkart credentials are missing/placeholder, so no real provider request or real product URL was tested.
+- Amazon Creators API access and Cuelinks endpoint contracts remain unverified; curated/deals-only modes are preserved.
+- No compliant email or WhatsApp delivery provider is configured; alert delivery was not claimed or tested as real.
+- Browser visual automation was not available. HTTP smoke checks and static/type/lint/build checks were used instead; responsive interaction should receive a final browser pass after deployment.
+
+## Production conclusion
+
+- **Code-verified:** Yes, for the checks and smoke routes listed above.
+- **Live-provider-verified:** No; credentials and database are unavailable.
+- **Production-ready:** Not yet. Complete the external activation blockers in `PENDING.md`, run the controlled first ingestion, and perform browser QA on the deployed domain before launch.

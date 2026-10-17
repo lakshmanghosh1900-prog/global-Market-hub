@@ -17,7 +17,7 @@ Goal: Visitor opens /in/under/under-49, sees real products in rupees, clicks thr
    npm run seed:merchants
 
 4. First Flipkart Sync
-   npm run sync:flipkart -- --full
+   npm run sync:flipkart
    - This refetches feed links (they expire after 10h) and upserts
 
 5. Run dev
@@ -27,8 +27,8 @@ Goal: Visitor opens /in/under/under-49, sees real products in rupees, clicks thr
 6. Verify
    - Products show in INR
    - Merchant badge shows Flipkart
-   - Freshness label shows "Updated Xh ago"
-   - Clickout URL contains ?affid=YOUR_ID
+   - Freshness label is derived from the recorded sync time
+   - The server-authoritative seller redirect resolves to the exact stored product URL and includes the configured tracking ID
 
 ## What to Provide Before Coding
 1. Flipkart affiliate tracking ID and API token

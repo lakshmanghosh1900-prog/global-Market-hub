@@ -58,7 +58,7 @@ async function sharedUpsert(products, {source}) {
 ```
 
 ## 11.5 Category Mapper
-Flipkart category -> internal category: electronics, fashion, home, under-49, under-99 etc.
+Flipkart category -> internal taxonomy category: electronics, fashion, home and the other canonical terms. Price brackets are calculated by listing filters and are never used as a substitute for a missing source category.
 Map via `category_map.json`
 
 ## 11.6 GTIN and Title-based Dedup

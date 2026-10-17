@@ -14,6 +14,10 @@ export const merchants = [
 ] as const;
 
 export async function seedCatalog() {
+  // Fail once, before constructing the transaction, when PostgreSQL is
+  // unavailable. This keeps the CLI diagnostic concise and never partially
+  // applies registry writes.
+  await prisma.$queryRaw`SELECT 1`;
   const brackets = [49, 99, 199, 499].map((value) => ({
     country: "in",
     slug: `under-${value}`,
