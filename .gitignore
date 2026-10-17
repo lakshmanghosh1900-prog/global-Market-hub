@@ -10,3 +10,4 @@ prisma/generated/
 *.tsbuildinfo
 *.sql
 !prisma/migrations/**/*.sql
+docker-compose.yml
