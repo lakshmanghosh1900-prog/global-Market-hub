@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CartHeaderTrigger } from "@/components/cart/CartHeaderTrigger";
+import { CountrySelector } from "@/components/country-selector";
 
 export function Header({ country }: { country?: string }) {
   const normalizedCountry = (country ?? "in").toLowerCase();
@@ -27,9 +28,7 @@ export function Header({ country }: { country?: string }) {
             <Link href={`/${normalizedCountry}/wishlist#deal-alerts`}>Alerts</Link>
             <Link href={`/${normalizedCountry}/account`}>Account</Link>
             <CartHeaderTrigger />
-          <span className="country-badge" aria-label="Current country: India">
-            IN · India
-          </span>
+          <CountrySelector country={normalizedCountry} />
         </nav>
       </div>
     </header>

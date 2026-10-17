@@ -1,6 +1,8 @@
-import countries from "@/data/countries.json";
+import { countryRegistry, defaultCountry, getCountry } from "@/lib/countries";
 
-export const activeCountries = countries.filter((country) => country.active);
-export const defaultCountry = (process.env.NEXT_PUBLIC_COUNTRY_DEFAULT ?? "in").toLowerCase();
+export { countryRegistry };
+export const activeCountries = countryRegistry.filter((country) => country.active);
+export const configuredDefaultCountry = (process.env.NEXT_PUBLIC_COUNTRY_DEFAULT ?? defaultCountry).toLowerCase();
 export const isActiveCountry = (country: string) =>
   activeCountries.some((item) => item.code === country.toLowerCase());
+export const getCountryMetadata = (country: string) => getCountry(country);

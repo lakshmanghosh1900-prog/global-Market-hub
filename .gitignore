@@ -9,3 +9,4 @@ node_modules/
 prisma/generated/
 *.tsbuildinfo
 *.sql
+!prisma/migrations/**/*.sql

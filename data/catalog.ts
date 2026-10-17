@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import countries from "@/data/countries.json";
+import { countryRegistry } from "@/lib/countries";
 
 export const taxonomy = [
   "electronics", "mobiles", "computers", "audio", "cameras", "wearables", "gaming", "accessories", "televisions", "appliances",
@@ -31,10 +31,25 @@ export async function seedCatalog() {
   // when a country or merchant changes from pending to active (createMany with
   // skipDuplicates would leave the old value untouched).
   await prisma.$transaction([
-    ...countries.map((country) => prisma.country.upsert({
+    ...countryRegistry.map((country) => prisma.country.upsert({
       where: { code: country.code },
-      update: { name: country.name, active: country.active },
-      create: country,
+      update: {
+        name: country.name,
+        active: country.active,
+        currency: country.currency,
+        locale: country.locale,
+        launchStatus: country.launchStatus,
+        supportedMerchants: country.supportedMerchants,
+      },
+      create: {
+        code: country.code,
+        name: country.name,
+        active: country.active,
+        currency: country.currency,
+        locale: country.locale,
+        launchStatus: country.launchStatus,
+        supportedMerchants: country.supportedMerchants,
+      },
     })),
     ...taxonomy.map((term) => prisma.taxonomyTerm.upsert({
       where: { slug: term.slug },

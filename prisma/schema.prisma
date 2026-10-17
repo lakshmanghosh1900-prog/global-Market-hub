@@ -150,10 +150,14 @@ model IngestRun {
 }
 
 model Country {
-  code       String   @id
-  name       String
-  active     Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  code              String   @id
+  name              String
+  active            Boolean  @default(false)
+  currency          String   @default("TBD")
+  locale            String   @default("en-US")
+  launchStatus      String   @default("coming_soon")
+  supportedMerchants String[] @default([])
+  createdAt         DateTime @default(now())
 }
 
 model Merchant {
