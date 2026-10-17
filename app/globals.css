@@ -1777,6 +1777,10 @@ a {
   line-height: 1.45;
 }
 
+.chat-message > p {
+  margin: 0;
+}
+
 .chat-message.assistant {
   border: 1px solid var(--line);
   background: white;
@@ -1803,6 +1807,106 @@ a {
   background: var(--mint);
   font-size: 10px;
   font-weight: 800;
+}
+
+.chat-message-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.chat-message-links a {
+  color: #287044;
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.chat-recommendations {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.chat-recommendation {
+  display: flex;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+}
+
+.chat-recommendation-image {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 7px;
+  color: var(--muted);
+  background: #edf3ef;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.chat-recommendation-image .safe-image-fallback {
+  min-height: 52px;
+  padding: 3px;
+  font-size: 8px;
+}
+
+.chat-recommendation > div:last-child {
+  min-width: 0;
+}
+
+.chat-recommendation strong,
+.chat-recommendation small,
+.chat-recommendation em {
+  display: block;
+}
+
+.chat-recommendation strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 10px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-recommendation small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.chat-recommendation em {
+  margin-top: 4px;
+  color: #8a681c;
+  font-size: 9px;
+  font-style: normal;
+}
+
+.chat-recommendation button {
+  margin-top: 5px;
+  padding: 0;
+  border: 0;
+  color: var(--accent-dark);
+  background: transparent;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.chat-error {
+  margin: 0;
+  padding: 7px 13px;
+  color: #a13c27;
+  background: #fff0ea;
+  font-size: 10px;
 }
 
 .chat-form {
