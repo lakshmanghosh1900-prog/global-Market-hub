@@ -1883,6 +1883,13 @@ a {
   font-size: 12px;
 }
 
+.price-history-note {
+  margin-top: 9px !important;
+  color: var(--muted);
+  font-size: 10px !important;
+  font-style: italic;
+}
+
 .wishlist-copy p strong {
   color: var(--ink);
   font-size: 19px;

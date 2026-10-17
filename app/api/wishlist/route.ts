@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   if (!body.productId) return NextResponse.json({ error: "productId is required" }, { status: 400 });
   try {
     const product = await prisma.product.findUnique({ where: { id: body.productId } });
-    if (!product || product.isDelisted) return NextResponse.json({ error: "Product is unavailable" }, { status: 409 });
+    if (!product || product.isDelisted || product.isFixture) return NextResponse.json({ error: "This product is not eligible for a live wishlist offer" }, { status: 409 });
     const item = await prisma.wishlistItem.upsert({
       where: { sessionId_productId: { sessionId: identity.sessionId, productId: product.id } },
       create: { sessionId: identity.sessionId, userId: identity.userId, productId: product.id, targetPrice: body.targetPrice && body.targetPrice > 0 ? body.targetPrice : null },

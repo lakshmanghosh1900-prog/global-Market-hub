@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     await prisma.$transaction(async (tx) => {
       const cartIds = Array.from(new Set((body.cart ?? []).map((item) => item.productId ?? item.id).filter((id): id is string => Boolean(id)))).slice(0, MAX_CART_ITEMS);
       const wishlistIds = (body.wishlist ?? []).map((item) => item.productId ?? item.id).filter((id): id is string => Boolean(id));
-      const products = await tx.product.findMany({ where: { id: { in: Array.from(new Set([...cartIds, ...wishlistIds])) }, isDelisted: false } });
+      const products = await tx.product.findMany({ where: { id: { in: Array.from(new Set([...cartIds, ...wishlistIds])) }, isDelisted: false, isFixture: false } });
       const productById = new Map(products.map((product) => [product.id, product]));
 
       const canonicalCart = await getOrCreateActiveCart(tx, identity.userId, identity.sessionId);
