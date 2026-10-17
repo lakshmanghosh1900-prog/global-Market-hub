@@ -1,14 +1,8 @@
 import { prisma } from "@/lib/db";
 import { countryRegistry } from "@/lib/countries";
+import { taxonomy } from "@/lib/taxonomy";
 
-export const taxonomy = [
-  "electronics", "mobiles", "computers", "audio", "cameras", "wearables", "gaming", "accessories", "televisions", "appliances",
-  "fashion", "mens-fashion", "womens-fashion", "kids-fashion", "footwear", "jewellery", "bags", "watches", "beauty", "personal-care",
-  "home", "kitchen", "furniture", "decor", "bedding", "bath", "storage", "garden", "tools", "lighting",
-  "grocery", "snacks", "beverages", "staples", "baby-care", "toys", "books", "stationery", "sports", "fitness",
-  "automotive", "pet-supplies", "health", "pharmacy", "travel", "luggage", "office", "musical-instruments", "movies", "subscriptions",
-  "under-49", "under-99", "under-199", "under-499", "deals"
-].map((slug) => ({ slug, name: slug.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) }));
+export { taxonomy };
 
 export const merchants = [
   ["flipkart", "Flipkart", true, "flipkart_api"], ["amazon", "Amazon-curated", false, "curated_csv"], ["cuelinks", "Cuelinks", false, "deals_only"],

@@ -99,7 +99,7 @@ export async function MarketHomePage({ country = "in", global = false }: { count
               <p className="eyebrow">Explore the taxonomy</p>
               <h2 id="home-categories-title">Start with what you need.</h2>
             </div>
-            <Link className="text-link" href={`/${country}/c/electronics`}>Open category directory <span aria-hidden="true">↗</span></Link>
+            <Link className="text-link" href={`/${country}/categories`}>Open category directory <span aria-hidden="true">↗</span></Link>
           </div>
           <div className="category-directory">
             {categories.map(([slug, name, description]) => (
