@@ -47,6 +47,7 @@ export type AlertSubscriptionWrite = {
   maxPrice: string | null;
   isVerified: boolean;
   verificationToken: string;
+  unsubscribeToken: string;
   isActive: boolean;
 };
 
@@ -187,6 +188,7 @@ export function subscriptionWrite(
   input: ValidatedAlertInput,
   now: Date,
   verificationToken: string,
+  unsubscribeToken = verificationToken,
 ): AlertSubscriptionWrite {
   return {
     email: input.email,
@@ -200,6 +202,7 @@ export function subscriptionWrite(
     maxPrice: input.maxPrice,
     isVerified: false,
     verificationToken,
+    unsubscribeToken,
     isActive: true,
   };
 }
@@ -209,8 +212,9 @@ export async function upsertAlertSubscription(
   input: ValidatedAlertInput,
   now: Date,
   verificationToken: string,
+  unsubscribeToken = verificationToken,
 ) {
-  const write = subscriptionWrite(input, now, verificationToken);
+  const write = subscriptionWrite(input, now, verificationToken, unsubscribeToken);
   return store.offerAlertSubscription.upsert({
     where: { email: input.email },
     create: write,
@@ -225,10 +229,10 @@ export async function verifyPendingAlertSubscription(store: AlertSubscriptionSto
   });
 }
 
-export async function unsubscribeAlertSubscription(store: AlertSubscriptionStore, email: string) {
+export async function unsubscribeAlertSubscription(store: AlertSubscriptionStore, unsubscribeToken: string) {
   return store.offerAlertSubscription.updateMany({
-    where: { email },
-    data: { isActive: false, verificationToken: null },
+    where: { unsubscribeToken, isActive: true },
+    data: { isActive: false, verificationToken: null, unsubscribeToken: null },
   });
 }
 
