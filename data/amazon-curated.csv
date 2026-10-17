@@ -1,2 +1,1 @@
-sku,title,price,mrp,brand,image,affiliateUrl,category
-AMAZON-CURATED-001,Amazon curated placeholder listing,49,99,Amazon-curated,https://images.unsplash.com/photo-1550745165-9bc0b252726f,https://www.amazon.in/,under-49
+title,brand,price,mrp,image_url,merchant,affiliate_url,gtin,category_slug,bracket

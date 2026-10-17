@@ -26,6 +26,8 @@ model Product {
   category     String
 
   source       String    @default("flipkart")
+  affiliateNetwork String?
+  affiliateCampaignId Int?
   isFixture    Boolean   @default(false)
   oosSince     DateTime?
   missingRuns  Int       @default(0)
@@ -42,6 +44,7 @@ model Product {
   @@index([category, inStock, isDelisted])
   @@index([source, missingRuns])
   @@index([gtin])
+  @@index([affiliateNetwork, affiliateCampaignId])
 }
 
 model Cart {
@@ -205,4 +208,34 @@ model OfferAlertSubscription {
   updatedAt           DateTime @updatedAt
 
   @@index([isActive, isVerified])
+}
+
+model CuelinksOffer {
+  id             String   @id @default(cuid())
+  externalId     Int      @unique
+  title          String
+  description    String?
+  terms          String?
+  couponCode     String?
+  offerType      String
+  campaignId     Int
+  campaignName   String
+  categoryNames  String[] @default([])
+  trackingUrl    String
+  status         String
+  startDate      String?
+  endDate        String?
+  originalPrice  Decimal? @db.Decimal(10, 2)
+  discountPrice  Decimal? @db.Decimal(10, 2)
+  percentOff     Decimal? @db.Decimal(6, 2)
+  shippingCharge String?
+  providerUpdatedAt DateTime?
+  lastSync       DateTime @default(now())
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([campaignId, isActive])
+  @@index([status, endDate])
+  @@index([lastSync])
 }

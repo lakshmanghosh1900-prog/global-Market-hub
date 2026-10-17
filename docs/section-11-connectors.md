@@ -26,17 +26,14 @@ async function fetchFlipkartFeeds() {
 - Access condition unverified: 10 qualifying sales in last 30 days per third-party write-up. TODO verify on Amazon dashboard.
 - Until access: Use curated listings table `curated_products` with manual CSV.
 
-## 11.3 Cuelinks Connector (No Product Feed)
-- Help center confirms: no product feeds, only campaigns, deals, transactions, links.
-- That means 18/20 merchants have no automatic catalog yet.
-- V3 endpoints are placeholders - make configurable:
-  - CUELINKS_ENDPOINT_CAMPAIGNS, DEALS, LINKS, TRANSACTIONS
-- Four options documented:
-  1. Network feeds (if merchant provides via other network)
-  2. Curated CSV import (admin UI / script)
-  3. Deals-only merchant pages (show only Cuelinks deals)
-  4. No scraping (strictly compliant)
-- Implement deals-only page as fallback.
+## 11.3 Cuelinks V3 Connector
+- Official contract: `https://developers.cuelinks.com/pub_api/v3` with `Authorization: Token <CUELINKS_API_KEY>`.
+- Campaign discovery uses `GET /campaigns` with documented pagination and access-status fields.
+- Offers use `GET /offers`; coupon/deal records are stored in `CuelinksOffer` and are never converted into `Product` rows.
+- Product/merchant conversion uses `POST /links/convert` and accepts a tracking URL only when the response has `affiliated: true`, a matching `original_url`, and an approved HTTPS tracking host.
+- The sync uses bounded retries for transient errors, validates response records, preserves previous offers on empty/error responses, and reports safe status classifications.
+- Cuelinks product-feed access remains a separate unknown capability until the publisher account confirms an authorized product feed. No scraping is used.
+- `/in/deals` is the deals-only fallback; validated curated CSV remains the product fallback.
 
 ## 11.4 Shared Upsert with Out-of-Stock and Delist Rules
 ```ts
@@ -69,10 +66,11 @@ Map via `category_map.json`
 - flipkart-sync: every 6h
 - cuelinks-deals-sync: every 12h
 - delist-check: daily
-- category-reindex: daily
+- category-health-check: daily
+- expired-cart-cleanup: daily
 
 ## 11.8 Tests and First-Run Procedure
 - Test: flipkart feed refetch after 10h expiry (mock expired link -> should refetch list)
 - Test: upsert OOS handling
 - Test: dedup
-- First-run: `npx prisma migrate`, seed merchants, run `npm run sync:flipkart -- --full`, verify /in/under/under-49 shows products
+- First-run: `npm run prisma:migrate:deploy`, `npm run seed:catalog`, verify Cuelinks status, run the protected Cuelinks deals cron, then verify `/in/deals`. Run `npm run sync:flipkart` only when direct Flipkart credentials are configured.

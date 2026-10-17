@@ -13,6 +13,18 @@ const FETCH_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 2;
 const validTaxonomy = new Set(taxonomy.map((term) => term.slug));
 
+export const isAllowedFlipkartFeedUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
+    const hosts = (process.env.FLIPKART_FEED_ALLOWED_HOSTS ?? "affiliate-api.flipkart.net,affiliate.flipkart.net")
+      .split(",").map((host) => host.trim().toLowerCase()).filter(Boolean);
+    return hosts.some((host) => url.hostname.toLowerCase() === host || url.hostname.toLowerCase().endsWith(`.${host}`));
+  } catch {
+    return false;
+  }
+};
+
 const flipkartHeaders = () => ({
   Accept: "application/json",
   "Fk-Affiliate-Id": flipkartAffiliateId() ?? "",
@@ -97,7 +109,7 @@ export async function listFlipkartFeeds(fetcher: FetchLike = fetch) {
 
   return asRecords(candidates.length > 0 ? candidates : body)
     .map((feed) => feed.url ?? feed.feedUrl ?? feed.link)
-    .filter((url): url is string => typeof url === "string" && url.length > 0);
+    .filter((url): url is string => typeof url === "string" && url.length > 0 && isAllowedFlipkartFeedUrl(url));
 }
 
 export async function fetchFlipkartProduct(productId: string, fetcher: FetchLike = fetch) {

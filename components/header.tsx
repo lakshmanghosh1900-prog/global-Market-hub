@@ -23,7 +23,7 @@ export function Header({ country }: { country?: string }) {
 
           <nav className="header-nav" aria-label="Primary navigation">
             <Link href={`/${normalizedCountry}/categories`}>Categories</Link>
-            <Link href={`/${normalizedCountry}/under/under-49`}>Deals</Link>
+            <Link href={`/${normalizedCountry}/deals`}>Deals</Link>
             <Link href={`/${normalizedCountry}/wishlist`}>Wishlist</Link>
             <Link href={`/${normalizedCountry}/wishlist#deal-alerts`}>Alerts</Link>
             <Link href={`/${normalizedCountry}/account`}>Account</Link>

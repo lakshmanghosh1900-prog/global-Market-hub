@@ -5,6 +5,7 @@ import { canonicalCategories, resolveCategorySlug } from "@/lib/taxonomy";
 import { searchProductsWithMeta } from "@/lib/products";
 import { answerChat } from "@/lib/chat-knowledge";
 import { hasRedirectSecret, isAllowedAffiliateUrl } from "@/lib/redirect";
+import { GET as searchApi } from "@/app/api/v1/search/route";
 
 test("country registry keeps India active and other markets preview-only", () => {
   assert.equal(getCountry("in")?.active, true);
@@ -25,6 +26,14 @@ test("search combines the complete price bracket and relevance query", async () 
   assert.equal(result.products.length <= 3, true);
   assert.equal(result.products.every((product) => product.price <= 49), true);
   assert.equal(result.products[0]?.title.toLowerCase().includes("usb"), true);
+});
+
+test("inactive market search never falls through to India inventory", async () => {
+  const response = await searchApi(new Request("http://localhost/api/v1/search?country=ae&q=USB"));
+  assert.equal(response.status, 409);
+  const body = await response.json() as { status?: string; products?: unknown[] };
+  assert.equal(body.status, "coming_soon");
+  assert.deepEqual(body.products, []);
 });
 
 test("chat returns structured links and does not present fixture products as seller-eligible", async () => {

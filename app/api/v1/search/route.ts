@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { searchProductsWithMeta } from "@/lib/products";
 import { canonicalCategories } from "@/lib/taxonomy";
+import { getCountryMetadata } from "@/lib/catalog-config";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const countryCode = (url.searchParams.get("country") ?? "in").toLowerCase();
+  const country = getCountryMetadata(countryCode);
+  if (!country) return NextResponse.json({ error: "Unknown market", code: "UNKNOWN_MARKET" }, { status: 404 });
+  if (!country.active) return NextResponse.json({ country: countryCode.toUpperCase(), status: "coming_soon", products: [], count: 0, page: 1, pageSize: 12, totalPages: 1 }, { status: 409, headers: { "cache-control": "no-store" } });
   const query = url.searchParams.get("q") ?? "";
   const rawBracket = url.searchParams.get("bracket") ?? undefined;
   const bracket = rawBracket && ["under-49", "under-99", "under-199", "under-499"].includes(rawBracket) ? rawBracket : undefined;
@@ -18,7 +23,7 @@ export async function GET(request: Request) {
   const result = await searchProductsWithMeta(query, { bracket, category, merchant, freshness, sort, page, pageSize });
 
   return NextResponse.json({
-    country: (url.searchParams.get("country") ?? "IN").toUpperCase(),
+    country: countryCode.toUpperCase(),
     query,
     filters: { category: category ?? null, bracket: bracket ?? null, merchant: merchant ?? null, freshness: freshness ?? null, sort },
     count: result.total,

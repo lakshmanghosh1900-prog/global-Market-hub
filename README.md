@@ -13,7 +13,7 @@ India is the only active market until another country has a verified local catal
 - **Frontend:** Next.js 14.2.35 App Router, React 18, TypeScript
 - **DB:** PostgreSQL + Prisma 5.22 with additive migrations
 - **Jobs:** Vercel Cron with durable Prisma ingest-run status; BullMQ/Redis remains a future scale-out option
-- **Connectors:** Flipkart real catalog connector; Amazon curated CSV mode; Cuelinks deals/link mode
+- **Connectors:** Cuelinks V3 campaigns/offers/link conversion; Flipkart real catalog connector when direct credentials exist; Amazon validated curated CSV mode
 - **Runtime:** Node `20.11.1` from `.nvmrc`; npm and `package-lock.json`
 
 ## Quick start
@@ -25,7 +25,7 @@ India is the only active market until another country has a verified local catal
 5. Run `npm run dev` and open `http://localhost:3000`.
 6. When verified Flipkart credentials are configured, trigger `npm run sync:flipkart`.
 
-Without a reachable database or verified Flipkart credentials, development mode renders clearly labelled local fixture cards for interface review. Fixtures cannot be saved as live offers or open seller clickouts. Production mode fails closed to honest empty states instead of presenting fixtures as inventory.
+Without a reachable database or verified provider credentials, development mode renders clearly labelled local fixture cards for interface review. Fixtures cannot be saved as live offers or open seller clickouts. Production mode fails closed to honest empty states instead of presenting fixtures as inventory.
 
 ## Main routes
 
@@ -33,6 +33,7 @@ Without a reachable database or verified Flipkart credentials, development mode 
 - `/in` - India marketplace homepage
 - `/in/categories` - complete discoverable taxonomy directory
 - `/in/search` - URL-backed search, category, price, merchant, freshness, sort and pagination filters
+- `/in/deals` - Cuelinks campaigns/offers as a dedicated deals surface, never as fabricated product inventory
 - `/in/under/under-49` - price-bracket listing
 - `/in/c/electronics` - category listing example
 - `/in/product/test-slug` - local preview PDP; live products use validated database records
@@ -46,9 +47,9 @@ Without a reachable database or verified Flipkart credentials, development mode 
 
 ## Catalog and clickout safety
 
-The catalog seed is idempotent and updates registry metadata without deleting products, click records or migration history. Flipkart feed URLs are refetched on every sync because provider links expire. Amazon remains curated until access is verified, and Cuelinks remains deals/link mode until a documented product source is configured.
+The catalog seed is idempotent and updates registry metadata without deleting products, click records or migration history. Flipkart feed URLs are refetched on every sync because provider links expire. Cuelinks uses the documented V3 base URL and `Authorization: Token ...` contract for campaigns, offers and `POST /links/convert`. Cuelinks campaigns/offers are stored separately from products. The current account's product-feed access is **not verified**; no Cuelinks campaign or coupon is promoted into a product record. Amazon remains curated until access is verified.
 
-Product seller actions are server-authoritative: the browser submits a product ID, the server loads the live product, validates its exact HTTPS merchant URL and signs a short-lived redirect. Fixture products, invalid URLs, unavailable products, generic merchant homepages and missing/placeholder HMAC configuration cannot produce an outbound clickout.
+Product seller actions are server-authoritative: the browser submits a product ID, the server loads the live product, validates its exact HTTPS merchant URL and signs a short-lived redirect. Cuelinks-managed products call the official link-conversion endpoint and require `affiliated: true` before redirecting. Fixture products, invalid URLs, unavailable products, generic merchant homepages and missing/placeholder HMAC configuration cannot produce an outbound clickout.
 
 The cart is a saved comparison surface, not checkout. Anonymous saves use `global_market_cart`, expire after 30 days, and cap at 50 unique products. Alert subscriptions record explicit consent and use tokenized, single-use unsubscribe authorization. Actual email/WhatsApp delivery remains disabled until compliant providers and sender configuration are available.
 
@@ -64,7 +65,7 @@ npm test
 npm run build
 ```
 
-`npm test` is the single offline-capable application test command. The current unit suite contains 22 tests. `prisma migrate status` and `npm run seed:catalog` require a reachable PostgreSQL instance; no reset or destructive database command is part of setup.
+`npm test` is the single offline-capable application test command. The current unit suite contains 35 tests. `prisma migrate status` and `npm run seed:catalog` require a reachable PostgreSQL instance; no reset or destructive database command is part of setup.
 
 ## Deployment
 
@@ -78,7 +79,7 @@ npm run seed:catalog
 npm run build
 ```
 
-`vercel.json` schedules the six-hour ingest, hourly price check, twelve-hour Cuelinks deals check, daily delist and daily category maintenance. See `docs/PRODUCTION_CHECKLIST.md` for controlled first ingestion and provider activation.
+`vercel.json` schedules the six-hour ingest, hourly price check, twelve-hour Cuelinks deals check, daily delist, daily category health check and daily expired-cart cleanup. See `docs/PRODUCTION_CHECKLIST.md` for controlled first ingestion and provider activation.
 
 ## Documentation
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { merchantFromHost } from "@/lib/affiliate";
 import { hasRedirectSecret, isAllowedAffiliateUrl, isValidSignature, trackedMerchantUrl } from "@/lib/redirect";
+import { isCuelinksTrackingUrl } from "@/lib/connectors/cuelinks";
 import { prisma } from "@/lib/db";
 
 export async function GET(request: Request) {
@@ -36,12 +37,15 @@ export async function GET(request: Request) {
   try {
     product = await prisma.product.findFirst({
       where: { id: productId, isDelisted: false, inStock: true },
-      select: { id: true, affiliateUrl: true, merchant: true, isFixture: true },
+      select: { id: true, affiliateUrl: true, merchant: true, isFixture: true, affiliateNetwork: true },
     });
   } catch {
     return NextResponse.json({ error: "Seller offers are temporarily unavailable" }, { status: 503 });
   }
-  if (!product || product.isFixture || product.merchant !== merchant || product.affiliateUrl !== target) {
+  const destinationMatches = product?.affiliateNetwork === "cuelinks"
+    ? isCuelinksTrackingUrl(target)
+    : product?.affiliateUrl === target;
+  if (!product || product.isFixture || product.merchant !== merchant || !destinationMatches) {
     return NextResponse.json({ error: "Seller destination does not match the live product offer" }, { status: 403 });
   }
 

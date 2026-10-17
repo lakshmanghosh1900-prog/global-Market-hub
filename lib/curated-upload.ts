@@ -1,9 +1,12 @@
-import { addMerchantAffiliateTracking } from "@/lib/affiliate";
+import { addMerchantAffiliateTracking, merchantFromHost } from "@/lib/affiliate";
 import { prisma } from "@/lib/db";
-import { taxonomy } from "@/data/catalog";
+import { canonicalCategories } from "@/lib/taxonomy";
+import { isAllowedAffiliateUrl } from "@/lib/redirect";
 
 const requiredColumns = ["title", "brand", "price", "mrp", "image_url", "merchant", "affiliate_url", "gtin", "category_slug", "bracket"] as const;
-const validCategories = new Set(taxonomy.map((term) => term.slug));
+const validCategories = new Set(canonicalCategories.map((term) => term.slug));
+const validMerchants = new Set(["Amazon-curated", "Cuelinks"]);
+const validBrackets = new Set(["under-49", "under-99", "under-199", "under-499"]);
 
 export type CuratedRow = Record<(typeof requiredColumns)[number], string>;
 
@@ -48,7 +51,11 @@ export async function importCuratedCsv(text: string) {
     const price = Number(row.price.replace(/[^0-9.]/g, ""));
     const mrp = row.mrp ? Number(row.mrp.replace(/[^0-9.]/g, "")) : null;
     const bracketMax = row.bracket.match(/^under-(\d+)$/)?.[1];
-    if (!row.title || !row.merchant || !row.image_url || !row.affiliate_url || !Number.isFinite(price) || price <= 0 || (mrp !== null && (!Number.isFinite(mrp) || mrp < price)) || !validCategories.has(row.category_slug) || !bracketMax || price > Number(bracketMax)) {
+    let sourceUrl: URL | null = null;
+    try { sourceUrl = new URL(row.affiliate_url); } catch { sourceUrl = null; }
+    const sourceMerchant = sourceUrl ? merchantFromHost(sourceUrl.hostname) : null;
+    const merchantMatchesSource = row.merchant === "Amazon-curated" ? sourceMerchant === "Amazon-curated" : row.merchant === "Cuelinks" && Boolean(sourceMerchant);
+    if (!row.title || !validMerchants.has(row.merchant) || !row.image_url.startsWith("https://") || !row.affiliate_url || !isAllowedAffiliateUrl(row.affiliate_url) || !merchantMatchesSource || !Number.isFinite(price) || price <= 0 || (mrp !== null && (!Number.isFinite(mrp) || mrp < price)) || !validCategories.has(row.category_slug) || !validBrackets.has(row.bracket) || !bracketMax || price > Number(bracketMax)) {
       errors.push(`Row ${rowNumber}: title, price/mrp, category_slug and bracket are invalid`); continue;
     }
     try {
@@ -59,8 +66,8 @@ export async function importCuratedCsv(text: string) {
       const slug = existing?.slug ?? `${baseSlug}-${slugify(row.merchant)}`;
       await prisma.product.upsert({
         where: { merchant_sku: { merchant: row.merchant, sku } },
-        create: { sku, slug, title: row.title, price, mrp, brand: row.brand || null, image: row.image_url || null, gallery: row.image_url ? [row.image_url] : [], description: null, gtin: row.gtin || null, affiliateUrl, merchant: row.merchant, category: row.category_slug, source: "curated", isFixture: false, inStock: true, lastSync: new Date() },
-        update: { title: row.title, price, mrp, brand: row.brand || null, image: row.image_url || null, gallery: row.image_url ? [row.image_url] : [], gtin: row.gtin || null, affiliateUrl, category: row.category_slug, source: "curated", isFixture: false, inStock: true, isDelisted: false, missingRuns: 0, oosSince: null, lastSync: new Date() },
+        create: { sku, slug, title: row.title, price, mrp, brand: row.brand || null, image: row.image_url || null, gallery: row.image_url ? [row.image_url] : [], description: null, gtin: row.gtin || null, affiliateUrl, merchant: row.merchant, category: row.category_slug, source: "curated", affiliateNetwork: row.merchant === "Cuelinks" ? "cuelinks" : null, isFixture: false, inStock: true, lastSync: new Date() },
+        update: { title: row.title, price, mrp, brand: row.brand || null, image: row.image_url || null, gallery: row.image_url ? [row.image_url] : [], gtin: row.gtin || null, affiliateUrl, category: row.category_slug, source: "curated", affiliateNetwork: row.merchant === "Cuelinks" ? "cuelinks" : null, isFixture: false, inStock: true, isDelisted: false, missingRuns: 0, oosSince: null, lastSync: new Date() },
       });
       imported += 1;
     } catch (error) {

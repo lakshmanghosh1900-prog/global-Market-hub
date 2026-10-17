@@ -20,6 +20,7 @@ export async function GET(_: Request, { params }: { params: { country: string } 
   const urls = [
     `/${country}`,
     `/${country}/categories`,
+    `/${country}/deals`,
     `/${country}/under/under-49`,
     `/${country}/under/under-99`,
     `/${country}/under/under-199`,

@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { addMerchantAffiliateTracking, merchantFromHost } from "@/lib/affiliate";
-import { isConfiguredValue } from "@/lib/config";
+import { cuelinksTrackingHosts, isConfiguredValue } from "@/lib/config";
 
 const MAX_AGE_SECONDS = 5 * 60;
 
@@ -16,8 +16,7 @@ export const redirectSecret = () => {
 };
 
 export const allowedAffiliateHosts = () =>
-  (process.env.AFFILIATE_ALLOWED_HOSTS || "www.flipkart.com,flipkart.com,amazon.in,www.amazon.in,cuelinks.com")
-    .split(",")
+  Array.from(new Set([...(process.env.AFFILIATE_ALLOWED_HOSTS || "www.flipkart.com,flipkart.com,amazon.in,www.amazon.in,cuelinks.com").split(","), ...cuelinksTrackingHosts()]))
     .map((host) => host.trim().toLowerCase())
     .filter(Boolean);
 
@@ -29,7 +28,7 @@ export const isAllowedAffiliateUrl = (value: string) => {
       !url.password &&
       !url.port &&
       url.pathname !== "/" &&
-      allowedAffiliateHosts().includes(url.hostname.toLowerCase()) &&
+      allowedAffiliateHosts().some((host) => url.hostname.toLowerCase() === host || url.hostname.toLowerCase().endsWith(`.${host}`)) &&
       Boolean(merchantFromHost(url.hostname));
   } catch {
     return false;
