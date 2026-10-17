@@ -20,8 +20,36 @@ export const merchants = [
 ] as const;
 
 export async function seedCatalog() {
-  await prisma.country.createMany({ data: countries.map((country) => country), skipDuplicates: true });
-  await prisma.taxonomyTerm.createMany({ data: taxonomy, skipDuplicates: true });
-  await prisma.merchant.createMany({ data: merchants.map(([slug, name, active, catalogSource]) => ({ slug, name, active, catalogSource })), skipDuplicates: true });
-  await prisma.priceBracket.createMany({ data: [49, 99, 199, 499].map((value) => ({ country: "in", slug: `under-${value}`, label: `Under ₹${value}`, maxPrice: value })), skipDuplicates: true });
+  const brackets = [49, 99, 199, 499].map((value) => ({
+    country: "in",
+    slug: `under-${value}`,
+    label: `Under ₹${value}`,
+    maxPrice: value,
+  }));
+
+  // Upserts keep the seed safe to rerun while also correcting registry metadata
+  // when a country or merchant changes from pending to active (createMany with
+  // skipDuplicates would leave the old value untouched).
+  await prisma.$transaction([
+    ...countries.map((country) => prisma.country.upsert({
+      where: { code: country.code },
+      update: { name: country.name, active: country.active },
+      create: country,
+    })),
+    ...taxonomy.map((term) => prisma.taxonomyTerm.upsert({
+      where: { slug: term.slug },
+      update: { name: term.name },
+      create: term,
+    })),
+    ...merchants.map(([slug, name, active, catalogSource]) => prisma.merchant.upsert({
+      where: { slug },
+      update: { name, active, catalogSource },
+      create: { slug, name, active, catalogSource },
+    })),
+    ...brackets.map((bracket) => prisma.priceBracket.upsert({
+      where: { country_slug: { country: bracket.country, slug: bracket.slug } },
+      update: { label: bracket.label, maxPrice: bracket.maxPrice },
+      create: bracket,
+    })),
+  ]);
 }
