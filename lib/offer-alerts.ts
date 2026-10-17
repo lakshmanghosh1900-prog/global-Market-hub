@@ -9,10 +9,10 @@ export const ALERT_CATEGORY_OPTIONS = [
 ] as const;
 
 export const ALERT_BRACKET_OPTIONS = [
-  ["free", "Free"],
+  ["under-49", "Under ₹49"],
   ["under-99", "Under ₹99"],
-  ["under-999", "Under ₹999"],
-  ["flash-deals", "Flash Deals"],
+  ["under-199", "Under ₹199"],
+  ["under-499", "Under ₹499"],
 ] as const;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

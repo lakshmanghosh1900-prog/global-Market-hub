@@ -61,7 +61,7 @@ test("subscribe rejects malformed, null, array, and invalid preference JSON bodi
 
   const invalidBracket = await responseForJson(JSON.stringify({ ...baseBody, priceBrackets: ["under-100"] }));
   assert.equal(invalidBracket.status, 400);
-  assert.match((await invalidBracket.json()).error, /Free.*Under ₹99.*Under ₹999.*Flash Deals/);
+   assert.match((await invalidBracket.json()).error, /Under ₹49.*Under ₹99.*Under ₹199.*Under ₹499/);
 });
 
 test("validation normalizes bounded email and international/local optional phones", () => {

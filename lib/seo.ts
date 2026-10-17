@@ -1,4 +1,8 @@
-export const siteUrl = () => (process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+export const siteUrl = () => {
+  const configured = process.env.NEXT_PUBLIC_BASE_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+  return process.env.NODE_ENV === "production" ? "https://global-market-hub.invalid" : "http://localhost:3000";
+};
 
 export const organizationJsonLd = () => ({
   "@context": "https://schema.org",

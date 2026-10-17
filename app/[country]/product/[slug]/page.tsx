@@ -4,13 +4,14 @@ import { Header } from "@/components/header";
 import { ProductDetail } from "@/components/product-detail";
 import { getProductBySlug, getProductOffers, searchProducts } from "@/lib/products";
 import { isActiveCountry } from "@/lib/catalog-config";
+import { siteUrl } from "@/lib/seo";
 
 export const revalidate = 60 * 60;
 
 export async function generateMetadata({ params }: { params: { country: string; slug: string } }): Promise<Metadata> {
   const product = await getProductBySlug(params.slug);
   if (!product) return { title: "Product not found | Global Market Hub" };
-  return { title: `${product.title} | Global Market Hub`, description: `${product.title} from ${product.merchant}, freshly synced in INR.`, alternates: { canonical: `/${params.country}/product/${product.slug}` } };
+  return { title: `${product.title} | Global Market Hub`, description: `${product.title} from ${product.merchant}, freshly synced in INR.`, alternates: { canonical: `${siteUrl()}/${params.country}/product/${product.slug}` } };
 }
 
 export default async function ProductPage({ params }: { params: { country: string; slug: string } }) {

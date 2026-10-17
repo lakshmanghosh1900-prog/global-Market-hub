@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { countryRegistry } from "@/lib/countries";
 
 const defaultCountry = (process.env.NEXT_PUBLIC_COUNTRY_DEFAULT ?? "in").toLowerCase();
 
@@ -39,6 +40,19 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === "/") return response;
   if (pathname === "/in" || pathname.startsWith("/in/")) return response;
+
+  const requestedCountry = pathname.split("/")[1]?.toLowerCase();
+  const market = countryRegistry.find((item) => item.code === requestedCountry);
+  if (market && !market.active) {
+    if (pathname !== `/${market.code}`) {
+      const previewUrl = request.nextUrl.clone();
+      previewUrl.pathname = `/${market.code}`;
+      const previewResponse = NextResponse.rewrite(previewUrl, { request });
+      response.cookies.getAll().forEach((cookie) => previewResponse.cookies.set(cookie));
+      return previewResponse;
+    }
+    return response;
+  }
 
   const rewriteUrl = request.nextUrl.clone();
   rewriteUrl.pathname = `/${defaultCountry}${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
