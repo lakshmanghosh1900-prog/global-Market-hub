@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
   try {
     const product = await prisma.product.findUnique({ where: { id: body.productId } });
-    if (!product || product.isDelisted) return NextResponse.json({ error: "Product is unavailable" }, { status: 409 });
+    if (!product || product.isDelisted || product.isFixture) return NextResponse.json({ error: "This product is not eligible for a saved live offer" }, { status: 409 });
 
     const cart = await getOrCreateActiveCart(prisma, identity.userId, identity.sessionId);
     const existing = await prisma.cartItem.findUnique({ where: { cartId_productId: { cartId: cart.id, productId: product.id } } });

@@ -1,14 +1,22 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { addMerchantAffiliateTracking, merchantFromHost } from "@/lib/affiliate";
+import { cuelinksTrackingHosts, isConfiguredValue } from "@/lib/config";
 
 const MAX_AGE_SECONDS = 5 * 60;
 
-export const redirectSecret = () =>
-  process.env.HMAC_SECRET || process.env.AFFILIATE_REDIRECT_SECRET || "local-development-hmac-secret";
+export const hasRedirectSecret = () => {
+  const value = process.env.HMAC_SECRET || process.env.AFFILIATE_REDIRECT_SECRET;
+  return isConfiguredValue(value) && !/placeholder|replace-with|local-development|pending/i.test(value as string);
+};
+
+export const redirectSecret = () => {
+  if (hasRedirectSecret()) return (process.env.HMAC_SECRET || process.env.AFFILIATE_REDIRECT_SECRET) as string;
+  if (process.env.NODE_ENV === "production") throw new Error("HMAC_SECRET is required for signed merchant redirects");
+  return "test-only-redirect-secret";
+};
 
 export const allowedAffiliateHosts = () =>
-  (process.env.AFFILIATE_ALLOWED_HOSTS || "www.flipkart.com,flipkart.com,amazon.in,www.amazon.in,cuelinks.com")
-    .split(",")
+  Array.from(new Set([...(process.env.AFFILIATE_ALLOWED_HOSTS || "www.flipkart.com,flipkart.com,amazon.in,www.amazon.in,cuelinks.com").split(","), ...cuelinksTrackingHosts()]))
     .map((host) => host.trim().toLowerCase())
     .filter(Boolean);
 
@@ -19,7 +27,8 @@ export const isAllowedAffiliateUrl = (value: string) => {
       !url.username &&
       !url.password &&
       !url.port &&
-      allowedAffiliateHosts().includes(url.hostname.toLowerCase()) &&
+      url.pathname !== "/" &&
+      allowedAffiliateHosts().some((host) => url.hostname.toLowerCase() === host || url.hostname.toLowerCase().endsWith(`.${host}`)) &&
       Boolean(merchantFromHost(url.hostname));
   } catch {
     return false;

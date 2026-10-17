@@ -17,10 +17,8 @@ function matchesSecret(candidate: string | null | undefined) {
 }
 
 export function isAdminRequest(request: Request, providedSecret?: string) {
-  const url = new URL(request.url);
   return isAdminSecretConfigured() && (
     matchesSecret(providedSecret) ||
-    matchesSecret(url.searchParams.get("admin_secret")) ||
     matchesSecret(request.headers.get("x-admin-secret")) ||
     matchesSecret(request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")) ||
     matchesSecret(decodeURIComponent(request.headers.get("cookie")?.match(/(?:^|;\s*)gmh_admin_session=([^;]+)/)?.[1] ?? ""))

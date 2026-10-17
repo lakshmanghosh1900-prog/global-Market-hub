@@ -15,6 +15,7 @@ export type CartStorageItem = {
   deepLink: string;
   freshness: string;
   inStock: boolean;
+  isFixture?: boolean;
   expiresAt?: string;
 };
 

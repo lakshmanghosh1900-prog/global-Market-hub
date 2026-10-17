@@ -45,19 +45,20 @@ function toCartItem(product: ListingProduct): CartStorageItem {
     title: product.title,
     price: product.price,
     currency: "INR",
-    imageUrl: product.image ?? "",
+  imageUrl: product.image ?? "",
     merchantId: product.merchant.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
     merchantName: product.merchant,
     deepLink: product.affiliateUrl,
     freshness: clientFreshness(product),
     inStock: product.inStock,
+    isFixture: product.isFixture,
   };
 }
 
 function readLocalWishlist(): SavedProduct[] {
   try {
     const saved = JSON.parse(localStorage.getItem(WISHLIST_STORAGE_KEY) ?? "{}") as { wishlist?: SavedProduct[] };
-    return Array.isArray(saved.wishlist) ? saved.wishlist : [];
+    return Array.isArray(saved.wishlist) ? saved.wishlist.map((item) => ({ ...item, lastSync: new Date(item.lastSync) })) : [];
   } catch {
     localStorage.removeItem(WISHLIST_STORAGE_KEY);
     return [];

@@ -1,14 +1,8 @@
 import { prisma } from "@/lib/db";
-import countries from "@/data/countries.json";
+import { countryRegistry } from "@/lib/countries";
+import { taxonomy } from "@/lib/taxonomy";
 
-export const taxonomy = [
-  "electronics", "mobiles", "computers", "audio", "cameras", "wearables", "gaming", "accessories", "televisions", "appliances",
-  "fashion", "mens-fashion", "womens-fashion", "kids-fashion", "footwear", "jewellery", "bags", "watches", "beauty", "personal-care",
-  "home", "kitchen", "furniture", "decor", "bedding", "bath", "storage", "garden", "tools", "lighting",
-  "grocery", "snacks", "beverages", "staples", "baby-care", "toys", "books", "stationery", "sports", "fitness",
-  "automotive", "pet-supplies", "health", "pharmacy", "travel", "luggage", "office", "musical-instruments", "movies", "subscriptions",
-  "under-49", "under-99", "under-199", "under-499", "deals"
-].map((slug) => ({ slug, name: slug.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) }));
+export { taxonomy };
 
 export const merchants = [
   ["flipkart", "Flipkart", true, "flipkart_api"], ["amazon", "Amazon-curated", false, "curated_csv"], ["cuelinks", "Cuelinks", false, "deals_only"],
@@ -20,8 +14,55 @@ export const merchants = [
 ] as const;
 
 export async function seedCatalog() {
-  await prisma.country.createMany({ data: countries.map((country) => country), skipDuplicates: true });
-  await prisma.taxonomyTerm.createMany({ data: taxonomy, skipDuplicates: true });
-  await prisma.merchant.createMany({ data: merchants.map(([slug, name, active, catalogSource]) => ({ slug, name, active, catalogSource })), skipDuplicates: true });
-  await prisma.priceBracket.createMany({ data: [49, 99, 199, 499].map((value) => ({ country: "in", slug: `under-${value}`, label: `Under ₹${value}`, maxPrice: value })), skipDuplicates: true });
+  // Fail once, before constructing the transaction, when PostgreSQL is
+  // unavailable. This keeps the CLI diagnostic concise and never partially
+  // applies registry writes.
+  await prisma.$queryRaw`SELECT 1`;
+  const brackets = [49, 99, 199, 499].map((value) => ({
+    country: "in",
+    slug: `under-${value}`,
+    label: `Under ₹${value}`,
+    maxPrice: value,
+  }));
+
+  // Upserts keep the seed safe to rerun while also correcting registry metadata
+  // when a country or merchant changes from pending to active (createMany with
+  // skipDuplicates would leave the old value untouched).
+  await prisma.$transaction([
+    ...countryRegistry.map((country) => prisma.country.upsert({
+      where: { code: country.code },
+      update: {
+        name: country.name,
+        active: country.active,
+        currency: country.currency,
+        locale: country.locale,
+        launchStatus: country.launchStatus,
+        supportedMerchants: country.supportedMerchants,
+      },
+      create: {
+        code: country.code,
+        name: country.name,
+        active: country.active,
+        currency: country.currency,
+        locale: country.locale,
+        launchStatus: country.launchStatus,
+        supportedMerchants: country.supportedMerchants,
+      },
+    })),
+    ...taxonomy.map((term) => prisma.taxonomyTerm.upsert({
+      where: { slug: term.slug },
+      update: { name: term.name },
+      create: term,
+    })),
+    ...merchants.map(([slug, name, active, catalogSource]) => prisma.merchant.upsert({
+      where: { slug },
+      update: { name, active, catalogSource },
+      create: { slug, name, active, catalogSource },
+    })),
+    ...brackets.map((bracket) => prisma.priceBracket.upsert({
+      where: { country_slug: { country: bracket.country, slug: bracket.slug } },
+      update: { label: bracket.label, maxPrice: bracket.maxPrice },
+      create: bracket,
+    })),
+  ]);
 }

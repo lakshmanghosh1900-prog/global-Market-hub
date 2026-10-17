@@ -13,6 +13,18 @@ const FETCH_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 2;
 const validTaxonomy = new Set(taxonomy.map((term) => term.slug));
 
+export const isAllowedFlipkartFeedUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
+    const hosts = (process.env.FLIPKART_FEED_ALLOWED_HOSTS ?? "affiliate-api.flipkart.net,affiliate.flipkart.net")
+      .split(",").map((host) => host.trim().toLowerCase()).filter(Boolean);
+    return hosts.some((host) => url.hostname.toLowerCase() === host || url.hostname.toLowerCase().endsWith(`.${host}`));
+  } catch {
+    return false;
+  }
+};
+
 const flipkartHeaders = () => ({
   Accept: "application/json",
   "Fk-Affiliate-Id": flipkartAffiliateId() ?? "",
@@ -97,7 +109,7 @@ export async function listFlipkartFeeds(fetcher: FetchLike = fetch) {
 
   return asRecords(candidates.length > 0 ? candidates : body)
     .map((feed) => feed.url ?? feed.feedUrl ?? feed.link)
-    .filter((url): url is string => typeof url === "string" && url.length > 0);
+    .filter((url): url is string => typeof url === "string" && url.length > 0 && isAllowedFlipkartFeedUrl(url));
 }
 
 export async function fetchFlipkartProduct(productId: string, fetcher: FetchLike = fetch) {
@@ -189,11 +201,18 @@ const mapCategory = (value: string | null, price: number) => {
   const keywordMatch = keywordMap.find(([words]) => words.some((word) => segments.includes(word)));
   if (keywordMatch) return keywordMatch[1];
 
-  if (price <= 49) return "under-49";
-  if (price <= 99) return "under-99";
-  if (price <= 199) return "under-199";
-  if (price <= 499) return "under-499";
+  // Price brackets are calculated by listing filters. A missing source
+  // category must not turn a cheap product into a fake taxonomy category.
   return "electronics";
+};
+
+const isExactFlipkartProductUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && (url.hostname === "flipkart.com" || url.hostname.endsWith(".flipkart.com")) && url.pathname !== "/";
+  } catch {
+    return false;
+  }
 };
 
 const normalizeProduct = (record: JsonRecord): SyncProduct | null => {
@@ -202,7 +221,7 @@ const normalizeProduct = (record: JsonRecord): SyncProduct | null => {
   const price = firstNumber(record, ["price", "sellingPrice", "selling_price"]);
   const affiliateUrl = firstString(record, ["productUrl", "product_url", "url"]);
 
-  if (!sku || !title || price === null || !affiliateUrl) {
+  if (!sku || !title || price === null || !affiliateUrl || !isExactFlipkartProductUrl(affiliateUrl)) {
     return null;
   }
 

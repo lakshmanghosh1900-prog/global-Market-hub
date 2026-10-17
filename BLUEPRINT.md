@@ -4,10 +4,10 @@
 **Track:** Agents & Automation agents
 **Stack:** Next.js 14 App Router, Postgres, BullMQ, Prisma
 
-## Status (2026-10-16)
+## Status (2026-10-17)
 - Sections 11 and 12 are now in the doc, including the v1.1 affiliate wishlist cart and future best-offer alert system, followed by the build kickoff appendix.
 - Live documentation check changed earlier assumptions.
-- Code has NOT been run or compiled yet.
+- The code has been run through the local typecheck, lint, 35-test unit suite, production build, and HTTP route smoke checks. Owner-side Windows development database migration/seed verification is recorded separately; production data/provider activation, dependency security review and browser QA remain external. See `docs/VERIFICATION_REPORT.md`.
 
 ## Live Check Changes
 
@@ -22,12 +22,11 @@
 - Feed links expire after 10 hours, so code refetches them on every run.
 - Sprint 1 is thin slice with Flipkart only.
 
-### Cuelinks: No Product Feeds
-- Help center says it offers no product feeds, only campaigns, deals, transactions and links.
-- Means 18 of your 20 merchants have no automatic catalog yet.
-- Four options: 1) network feeds, 2) curated CSV import, 3) deals-only merchant pages, 4) no scraping.
-- SQL fix for seed included in Section 11.
-- Cuelinks V3 endpoint paths and response formats are configurable placeholders, couldn't retrieve current docs. Check against dashboard.
+### Cuelinks: Campaigns, Offers and Link Conversion First
+- The official V3 publisher API is documented at `https://developers.cuelinks.com/pub_api/v3` with Token authentication and `GET /campaigns`, `GET /offers`, `POST /links/convert` and `GET /ping`.
+- Campaigns/offers are persisted in the separate `CuelinksOffer` model and rendered on the deals-only route; they are never promoted into product inventory.
+- Product-feed access remains `PRODUCT_FEED_ACCESS_UNKNOWN` until the publisher account confirms an authorized catalog/feed. No scraping is used.
+- Four safe catalog options remain: 1) authorized network feed, 2) validated curated CSV import, 3) deals-only merchant pages, 4) no automated product catalog.
 
 ## Sections
 

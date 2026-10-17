@@ -1,4 +1,4 @@
-import { isConfiguredValue } from "@/lib/config";
+import { cuelinksTrackingHosts, isConfiguredValue } from "@/lib/config";
 
 /** The production Amazon Associates tag used on every amazon.in outbound URL. */
 export const AMAZON_ASSOCIATE_TAG = "globalmarketh-21";
@@ -21,6 +21,7 @@ export const merchantFromHost = (hostname: string) => {
   if (host === "flipkart.com" || host.endsWith(".flipkart.com")) return "Flipkart";
   if (host === "amazon.in" || host.endsWith(".amazon.in")) return "Amazon-curated";
   if (host === "cuelinks.com" || host.endsWith(".cuelinks.com")) return "Cuelinks";
+  if (cuelinksTrackingHosts().some((trackingHost) => host === trackingHost || host.endsWith(`.${trackingHost}`))) return "Cuelinks";
   return null;
 };
 

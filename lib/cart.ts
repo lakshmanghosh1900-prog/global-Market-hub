@@ -62,3 +62,7 @@ export function freshnessFor(inStock: boolean, lastSync: Date) {
   const updated = elapsedHours < 1 ? "updated just now" : elapsedHours < 24 ? `updated ${elapsedHours}h ago` : `updated ${Math.floor(elapsedHours / 24)}d ago`;
   return inStock ? `In stock · ${updated}` : `Currently unavailable · ${updated}`;
 }
+
+export async function cleanupExpiredCarts(db: CartDb, now = new Date()) {
+  return db.cart.deleteMany({ where: { expiresAt: { lte: now } } });
+}

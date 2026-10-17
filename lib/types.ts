@@ -15,4 +15,6 @@ export type ListingProduct = {
   inStock: boolean;
   lastSync: Date;
   category: string;
+  /** Local fixtures are useful for UI review but are never eligible for clickouts. */
+  isFixture?: boolean;
 };

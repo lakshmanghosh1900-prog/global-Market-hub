@@ -1,6 +1,6 @@
 # Production checklist
 
-This checklist keeps the repository runnable in mock mode while making the first real catalog activation controlled and reversible.
+This checklist keeps the repository runnable in honest preview mode while making the first real catalog activation controlled, reversible and provider-aware.
 
 ## Real Affiliate Env Needed
 
@@ -13,10 +13,15 @@ Set these values in the deployment environment, never in git:
 - `CRON_SECRET` — a long random value used by Vercel Cron requests.
 - `HMAC_SECRET` — a long random value for signed clickout tokens.
 - `AFFILIATE_ALLOWED_HOSTS` — the exact merchant hosts approved for clickouts.
+- `NEXT_PUBLIC_BASE_URL` — the absolute production canonical origin; do not leave the placeholder value.
+- `RESEND_API_KEY` and `RESEND_FROM_EMAIL` — required only when a compliant alert email dispatcher is implemented and enabled.
+- `CUELINKS_API_KEY` — a key with documented `read:campaigns`, `read:offers` and `write:links` scopes.
+- `CUELINKS_API_BASE` — `https://developers.cuelinks.com/pub_api/v3`.
+- `CUELINKS_TRACKING_HOSTS` — comma-separated approved Cuelinks tracking hosts; keep this exact and provider-verified.
 
 The connector refetches the Flipkart feed-list at the beginning of every sync. This is intentional: feed URLs expire after approximately ten hours. The sync also injects `affid` into every valid Flipkart product URL, maps source categories to the seeded taxonomy, deduplicates the incoming run by GTIN/SKU, and records an `IngestRun`.
 
-Until both Flipkart credentials are non-placeholder values, the cron job stays in mock/fallback mode. Do not interpret the mock response as a successful real feed.
+Until a valid Cuelinks key or direct Flipkart credentials are configured, no real provider sync runs. Development preview fixtures are disclosed and cannot create seller clickouts; production does not use them as inventory.
 
 ## Vercel Env Setup
 
@@ -60,7 +65,7 @@ Use `ADMIN_SECRET` with the protected `/admin/curated-upload` and `/admin/clicks
 
 ## First Real Ingestion Steps
 
-1. Confirm the production database is reachable and migrations `00000000000000_init`, `00000000000001_global_update`, `00000000000002_production_ingestion`, and `00000000000003_visible_listings` are applied.
+1. Confirm the production database is reachable and migrations `00000000000000_init`, `00000000000001_global_update`, `00000000000002_production_ingestion`, `00000000000003_visible_listings`, `00000000000004_affiliate_cart_offer_alerts`, `00000000000005_country_market_metadata`, `00000000000006_alert_unsubscribe_tokens`, and `00000000000007_cuelinks_offers_network` are applied.
 2. Request the status endpoint before activation:
 
    ```text
@@ -77,7 +82,8 @@ Use `ADMIN_SECRET` with the protected `/admin/curated-upload` and `/admin/clicks
 5. Check a known product URL and confirm the affiliate URL contains the configured `affid`. Check the public listing, PDP Product JSON-LD, `/sitemap.xml`, and `/robots.txt`.
 6. If the feed-list or parser returns an empty/unexpected payload, the run fails before applying a destructive empty sync. Investigate the recorded `lastRun.error`; do not manually reset `missingRuns` until the payload contract is understood.
 7. After three validated runs, review out-of-stock and missing-run counts. The shared policy keeps OOS products for seven days and delists products after three consecutive validated missing runs.
-8. For Amazon/Cuelinks products, upload a validated CSV with the exact header shown on `/admin/curated-upload`. Verify `source=curated`, `isFixture=false`, category, image, and click attribution before publishing the upload batch.
+8. For Amazon/Cuelinks products, upload a validated CSV with the exact header shown on `/admin/curated-upload`. Verify `source=curated`, `isFixture=false`, category, image, exact HTTPS merchant path and click attribution before publishing the upload batch.
+9. For Cuelinks, verify `/api/v1/cuelinks/status`, then run `/api/cron/cuelinks-deals-sync` with `CRON_SECRET`. Confirm campaign/offer counts and that live offers appear only at `/in/deals`; this does not prove product-feed access.
 
 ## Verification commands
 
@@ -91,4 +97,4 @@ npm test
 npm run build
 ```
 
-These checks do not prove that live Flipkart credentials or a production database are valid. The controlled first-ingestion steps above are required after deployment.
+These checks do not prove that live Cuelinks/Flipkart credentials, a production database, legal configuration, product-feed access, or alert delivery are valid. The controlled first-ingestion steps above are required after deployment. The category maintenance cron performs a database-backed category health check and reports unknown categories; it does not rewrite product categories automatically. A price-check match is not reported as a delivered alert; dispatch remains disabled until a compliant provider is implemented and verified.
