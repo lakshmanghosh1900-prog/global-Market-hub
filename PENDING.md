@@ -4,7 +4,7 @@ The code-level marketplace, search, taxonomy, country preview, saved comparison,
 
 ## Live activation blockers
 
-1. [ ] **Cuelinks API key/scopes:** provide a key with `read:campaigns`, `read:offers` and `write:links`, then verify `/ping`, campaigns, offers and `/links/convert` against the configured account.
+1. [ ] **Cuelinks API key/scopes:** a local Cuelinks key is present but its required `read:campaigns`, `read:offers` and `write:links` scopes are not verified. Sanitized ping/campaign/offer attempts were blocked by provider network fetch failure; do not claim live access or run link conversion until connectivity and authorization are confirmed.
 2. [ ] **Cuelinks product feed:** confirm separately whether the account has an authorized product catalog/feed. Current status is `PRODUCT_FEED_ACCESS_UNKNOWN`; campaigns/offers/link conversion do not prove product-feed access.
 3. [ ] **Flipkart Affiliate:** direct tracking ID (`affid`) and API token remain optional for Cuelinks-managed flows and are still unavailable.
 4. [ ] **Amazon Associates India:** verify Creators API access and account conditions. Keep curated mode until verified.
@@ -13,7 +13,7 @@ The code-level marketplace, search, taxonomy, country preview, saved comparison,
 7. [ ] **Domain + Hosting:** configure the production domain, `NEXT_PUBLIC_BASE_URL`, Vercel project and cron secret.
 8. [ ] **Brand/Legal:** provide the legal entity, grievance officer name/email/address and public compliance copy.
 9. [ ] **Alert delivery:** configure and verify a compliant email sender/provider and WhatsApp provider before enabling delivery.
-10. [ ] **Production dependency security:** resolve or formally mitigate the `npm audit --omit=dev` findings (1 critical, 1 high) in the locked Next.js/PostCSS dependency tree without using an unreviewed breaking upgrade.
+10. [x] **Production dependency security:** upgraded Next.js to `15.5.28`, aligned `eslint-config-next` and the Windows SWC package, and pinned Next's compatible PostCSS dependency to `8.5.30`; `npm audit --omit=dev` reports zero production vulnerabilities. The full development audit still has five high findings confined to the ESLint toolchain path and is not a production dependency exposure.
 
 ## Completed code follow-ups
 
@@ -34,6 +34,7 @@ The code-level marketplace, search, taxonomy, country preview, saved comparison,
 - [x] Owner-side Windows Prisma generation, migration status and catalog metadata seeding were verified after resolving the project-specific Prisma engine lock.
 - [x] A PR quality gate is defined in `.github/workflows/pr-quality.yml` and does not require live provider credentials or a production database.
 - [x] Development fixture fallback is limited to an empty/unavailable catalog in non-production; active real catalog results are never replaced by fixtures.
+- [x] Next.js 14-to-15 async request APIs and static revalidation exports were migrated for the patched security release.
 - [ ] Run `npm run prisma:migrate:deploy` and `npm run seed:catalog` against the production PostgreSQL database. The Linux agent cannot access the owner's Windows PostgreSQL instance.
 - [ ] Run a controlled real Flipkart ingestion only after credentials and database are configured.
 - [ ] Replace local fixture preview data with real verified inventory in production.

@@ -4,8 +4,9 @@ import { Header } from "@/components/header";
 import { BracketStrip } from "@/components/bracket-strip";
 import { isActiveCountry } from "@/lib/catalog-config";
 
-export default function CategoriesPage({ params }: { params: { country: string } }) {
-  const country = params.country.toLowerCase();
+export default async function CategoriesPage({ params }: { params: Promise<{ country: string }> }) {
+  const { country: rawCountry } = await params;
+  const country = rawCountry.toLowerCase();
   if (!isActiveCountry(country)) notFound();
   return (
     <>

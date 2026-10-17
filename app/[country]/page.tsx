@@ -3,8 +3,9 @@ import { MarketHomePage } from "@/components/market-home";
 import { MarketUnavailable } from "@/components/market-unavailable";
 import { getCountryMetadata } from "@/lib/catalog-config";
 
-export default function CountryHomePage({ params }: { params: { country: string } }) {
-  const country = params.country.toLowerCase();
+export default async function CountryHomePage({ params }: { params: Promise<{ country: string }> }) {
+  const { country: rawCountry } = await params;
+  const country = rawCountry.toLowerCase();
   const market = getCountryMetadata(country);
   if (!market) notFound();
   if (!market.active) return <MarketUnavailable country={country} />;

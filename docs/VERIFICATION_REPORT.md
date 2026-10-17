@@ -17,12 +17,13 @@ This report records checks run against the current working tree. It replaces the
 
 | Area | Evidence | Result |
 |---|---|---|
+| Dependency security | `package.json`, `package-lock.json` | Next.js `15.5.28`, `eslint-config-next` `15.5.28`, Windows SWC `15.5.28`, React `18.3.1`, React types `18.3.31`/`18.3.7`, and PostCSS `8.5.30` are locked. The explicit Next/PostCSS override is same-major and build-tested. |
 | Global homepage | `app/page.tsx`, `components/market-home.tsx` | `/` is a marketplace homepage with search, category discovery, price ranges, catalog preview, merchant modes and affiliate disclosure. |
 | India homepage | `app/[country]/page.tsx` | `/in` is a localized India landing page and no longer redirects to Under ₹49. |
 | Market routing | `lib/countries.ts`, `components/country-selector.tsx`, `middleware.ts` | India is active; 37 countries are coming soon. Inactive markets render a preview state and do not fall through to Indian inventory. |
 | Taxonomy | `lib/taxonomy.ts`, `components/category-directory.tsx`, `app/[country]/categories/page.tsx` | Canonical categories, aliases, grouped directory and category breadcrumbs are implemented. |
 | Search | `lib/products.ts`, `app/[country]/search/page.tsx`, `/api/v1/search` | Query, complete category list, four canonical price brackets, merchant, freshness, sorting, URL persistence, result counts and pagination are implemented. |
-| Cuelinks V3 | `lib/connectors/cuelinks.ts`, `.env.example`, `tests/cuelinks.test.ts` | Official base URL, Token authentication, campaign/offer pagination, response validation, bounded retry/error classification and `POST /links/convert` with original URL and `affiliated` checks are implemented. Live credentials are not configured. |
+| Cuelinks V3 | `lib/connectors/cuelinks.ts`, `.env.example`, `tests/cuelinks.test.ts` | Official base URL, Token authentication, campaign/offer pagination, response validation, bounded retry/error classification and `POST /links/convert` with original URL and `affiliated` checks are implemented. A local key is present, but live connectivity and scopes are not verified. |
 | Cuelinks deals | `prisma/schema.prisma`, `app/api/cron/cuelinks-deals-sync/route.ts`, `app/[country]/deals/page.tsx` | Offers/coupons have a separate `CuelinksOffer` model and dedicated `/in/deals` surface. Empty/error syncs preserve prior data. This does not prove product-feed access. |
 | Catalog seed | `data/catalog.ts` | Country, taxonomy, merchant and price-bracket seed uses transactional upserts and is safe to rerun. A reachable development database with zero active products uses clearly marked local fixtures for UI/search review; production remains empty until real products exist. |
 | Product pages | `components/product-detail.tsx`, `components/safe-image.tsx` | Product facts, category breadcrumbs, offer comparison, image fallback, JSON-LD and fixture disclosure are implemented. |
@@ -38,7 +39,7 @@ Commands run from the repository root:
 
 | Command | Result |
 |---|---|
-| `npm ci --ignore-scripts` | PASS — 351 packages installed from `package-lock.json`; npm reported 5 audit findings (4 high, 1 critical) including development dependencies |
+| `npm ci --ignore-scripts` | PASS — 339 packages installed from `package-lock.json`; npm reported 5 high audit findings confined to development dependencies |
 | `npm run prisma:generate` | PASS — Prisma Client 5.22.0 generated; owner-side Windows generation also reported PASS after the engine-lock remediation |
 | `npm exec -- prisma validate` | PASS — schema valid |
 | `npm exec -- prisma migrate status` | OWNER-SIDE WINDOWS PASS — migration `00000000000007_cuelinks_offers_network` reported applied; Linux agent remains BLOCKED_ENVIRONMENT with P1001 because it cannot reach Windows PostgreSQL |
@@ -48,7 +49,8 @@ Commands run from the repository root:
 | `npm test` | PASS — **35 tests passed**, 0 failed |
 | `npm run build` | PASS — Next.js production build completed |
 | `git diff --check` | PASS — no whitespace errors |
-| `npm audit --omit=dev` | **BLOCKED_SECURITY** — 2 production dependency findings (1 critical, 1 high) in the locked Next.js/PostCSS tree; no breaking `npm audit fix --force` was run |
+| `npm audit --omit=dev` | PASS — zero production vulnerabilities after the Next.js/PostCSS upgrade |
+| `npm audit --json` | **BLOCKED_DEV_TOOLING** — 5 high findings remain in the ESLint-only `@next/eslint-plugin-next → fast-glob → micromatch → braces` path; no production dependency reaches this path |
 | GitHub Actions PR quality gate | ADDED in `.github/workflows/pr-quality.yml`; no run is claimed until the pushed workflow executes |
 
 The unit suite covers cart expiry/cap/dedupe/cleanup, country registry and inactive API isolation, taxonomy aliases, bracket search, structured chat, official Cuelinks campaign/offer/link-conversion contract behavior, curated CSV safety, redirect restrictions, HMAC placeholder behavior, Flipkart parsing/feed-host validation/refetch, upsert policy, alert validation/consent/verification/unsubscribe, price-alert numeric boundaries, and authoritative redirect requirements.
@@ -84,11 +86,11 @@ With the development server running at `http://localhost:3100` for this run, wit
 ## External verification still blocked
 
 - The Linux agent cannot access the owner's Windows PostgreSQL instance, so it cannot independently reproduce the owner-side migration/seed result or query Windows catalog row counts. The owner-side development-database result is recorded above.
-- No real Flipkart or Cuelinks provider request or real product URL was tested; configured local values were not used for live calls.
+- Sanitized Cuelinks checks saw a configured local key and configured runtime base, but `/ping`, campaigns and offers all ended with network `fetch failed`; no authenticated URL, raw response, scope result or link conversion is claimed. No real Flipkart request was made because the local Affiliate ID/token are missing or placeholders.
 - Amazon Creators API access remains unverified. Cuelinks endpoint contracts are verified against the official documentation, but live credentials, account scopes, campaign eligibility and product-feed access are not verified.
 - No compliant email or WhatsApp delivery provider is configured; alert delivery was not claimed or tested as real.
 - Browser visual automation was not available. HTTP smoke checks and static/type/lint/build checks were used instead; responsive interaction should receive a final browser pass after deployment.
-- `npm audit --omit=dev` reports a critical Next.js and high PostCSS production dependency exposure requiring a compatible upgrade/mitigation review before production deployment. The locked stack was not force-upgraded during this warrant.
+- The full audit still reports five high development-tool findings in the ESLint-only `@next/eslint-plugin-next → fast-glob → micromatch → braces` path. The current audit database offers no safe fixed `braces` release for that path; the production audit is clean and the development-only exposure does not authorize a blind override.
 
 ## Production conclusion
 
@@ -97,7 +99,7 @@ With the development server running at `http://localhost:3100` for this run, wit
 - **Product-feed access:** `PRODUCT_FEED_ACCESS_UNKNOWN`; campaigns/offers/link conversion do not prove an authorized product feed.
 - **Affiliate credential/scope readiness:** Code is scope-aware for Cuelinks `read:campaigns`, `read:offers`, and `write:links`; no live key/scope verification is claimed. Flipkart and Amazon credentials/access remain unverified.
 - **Inventory truthfulness:** No unverified provider response is promoted into product inventory. Cuelinks offers remain separate from products; development fixtures are marked and production fails closed when real products are unavailable.
-- **Security review:** Server-authoritative signed redirects, host allowlists, cron/admin authorization, fixture blocking and sanitized provider errors are implemented. Dependency audit findings remain an open production blocker.
+- **Security review:** Server-authoritative signed redirects, host allowlists, cron/admin authorization, fixture blocking and sanitized provider errors are implemented. Production dependency audit is clean; development-only ESLint audit findings remain documented.
 - **Production configuration:** Production domain, legal identity, HMAC, cron, approved hosts, provider credentials, alert delivery and hosting configuration remain operator-owned blockers.
 - **Browser QA:** Not completed; browser automation is unavailable in this agent and must run against the deployed domain.
 - **Production-ready:** Not yet. Complete the external activation blockers in `PENDING.md`, run the controlled first ingestion, and perform browser QA on the deployed domain before launch.

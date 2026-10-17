@@ -4,18 +4,20 @@ import { PriceBracketPage } from "@/components/price-bracket-page";
 import { isActiveCountry } from "@/lib/catalog-config";
 import { siteUrl } from "@/lib/seo";
 
-export const revalidate = 60 * 60;
+export const revalidate = 3600;
 
-export async function generateMetadata({ params }: { params: { country: string; bracket: string } }): Promise<Metadata> {
-  const amount = params.bracket.replace("under-", "");
+export async function generateMetadata({ params }: { params: Promise<{ country: string; bracket: string }> }): Promise<Metadata> {
+  const { country, bracket } = await params;
+  const amount = bracket.replace("under-", "");
   return {
     title: `Under ₹${amount} | Global Market Hub`,
     description: `Freshly synced India finds priced under ₹${amount}.`,
-    alternates: { canonical: `${siteUrl()}/${params.country}/under/${params.bracket}` },
+    alternates: { canonical: `${siteUrl()}/${country}/under/${bracket}` },
   };
 }
 
-export default function CountryBracketPage({ params }: { params: { country: string; bracket: string } }) {
-  if (!isActiveCountry(params.country) || !/^under-\d+$/.test(params.bracket)) notFound();
-  return <PriceBracketPage bracket={params.bracket} country={params.country.toLowerCase()} />;
+export default async function CountryBracketPage({ params }: { params: Promise<{ country: string; bracket: string }> }) {
+  const { country, bracket } = await params;
+  if (!isActiveCountry(country) || !/^under-\d+$/.test(bracket)) notFound();
+  return <PriceBracketPage bracket={bracket} country={country.toLowerCase()} />;
 }

@@ -25,7 +25,8 @@
 - `npm run lint` — PASS
 - `npm test` — PASS, 35 tests
 - `npm run build` — PASS
-- `npm audit --omit=dev` — BLOCKED_SECURITY, 1 critical and 1 high production dependency findings; no force upgrade run
+- `npm audit --omit=dev` — PASS, zero production vulnerabilities after Next.js `15.5.28` and PostCSS `8.5.30` upgrade
+- `npm audit --json` — BLOCKED_DEV_TOOLING, five high findings confined to the ESLint-only fast-glob/micromatch/braces path
 - `npm exec -- prisma migrate status` — OWNER-SIDE WINDOWS PASS, migration 7 applied; Linux agent BLOCKED with P1001 because Windows PostgreSQL is outside its namespace
 - HTTP smoke routes — PASS with development fixture fallback; live DB/provider behavior not claimed
 
@@ -35,7 +36,7 @@
 2. Production PostgreSQL deployment and controlled first ingestion must be run without destructive resets; the owner-side development database is verified separately.
 3. Direct Flipkart and Amazon provider access remains credential/account gated.
 4. Browser responsive QA, production domain/legal values and compliant alert delivery remain external.
-5. Locked production dependencies have unresolved audit findings requiring a compatible security review before deployment.
+5. Development-only ESLint dependency findings remain documented; production dependency audit is clean. Do not apply a blind override to the unresolved `braces` path.
 
 ## Next concrete step
 

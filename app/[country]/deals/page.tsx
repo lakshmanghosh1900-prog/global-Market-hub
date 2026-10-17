@@ -7,8 +7,9 @@ import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export default async function DealsPage({ params }: { params: { country: string } }) {
-  const country = params.country.toLowerCase();
+export default async function DealsPage({ params }: { params: Promise<{ country: string }> }) {
+  const { country: rawCountry } = await params;
+  const country = rawCountry.toLowerCase();
   if (!isActiveCountry(country)) notFound();
   let offers: Array<{ externalId: number; title: string; description: string | null; terms: string | null; couponCode: string | null; offerType: string; campaignName: string; categoryNames: string[]; originalPrice: unknown; discountPrice: unknown; percentOff: unknown; endDate: string | null }> = [];
   let unavailable = false;

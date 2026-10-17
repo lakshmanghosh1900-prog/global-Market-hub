@@ -7,8 +7,9 @@ import { canonicalCategories } from "@/lib/taxonomy";
 
 const xmlEscape = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-export async function GET(_: Request, { params }: { params: { country: string } }) {
-  const country = params.country.toLowerCase();
+export async function GET(_: Request, { params }: { params: Promise<{ country: string }> }) {
+  const { country: rawCountry } = await params;
+  const country = rawCountry.toLowerCase();
   if (!isActiveCountry(country)) notFound();
   const firstPage = await searchProductsWithMeta("", { page: 1, pageSize: 48 });
   const productPages = [firstPage];

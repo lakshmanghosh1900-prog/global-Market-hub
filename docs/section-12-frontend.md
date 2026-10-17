@@ -1,6 +1,6 @@
-# Section 12: Frontend - Next.js 14 Country Routing, Cards, Listing, PDP, SEO
+# Section 12: Frontend - Next.js 15 Country Routing, Cards, Listing, PDP, SEO
 
-## 12.1 Next.js 14 Country Routing
+## 12.1 Next.js 15 Country Routing
 - Structure: app/[country]/...
 - Default: /in/*
 - Middleware: detect country, rewrite to /in if no country

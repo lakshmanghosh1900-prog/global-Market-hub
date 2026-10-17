@@ -10,7 +10,7 @@ India is the only active market until another country has a verified local catal
 
 ## Architecture
 
-- **Frontend:** Next.js 14.2.35 App Router, React 18, TypeScript
+- **Frontend:** Next.js 15.5.28 App Router, React 18.3.1, TypeScript
 - **DB:** PostgreSQL + Prisma 5.22 with additive migrations
 - **Jobs:** Vercel Cron with durable Prisma ingest-run status; BullMQ/Redis remains a future scale-out option
 - **Connectors:** Cuelinks V3 campaigns/offers/link conversion; Flipkart real catalog connector when direct credentials exist; Amazon validated curated CSV mode
@@ -67,7 +67,7 @@ npm run build
 
 `npm test` is the single offline-capable application test command. The current unit suite contains 35 tests. The owner-side Windows development database has verified migration 7 and catalog metadata seeding; this Linux agent cannot access that Windows `localhost:5432` instance. Production migration/seed still require the production database. No reset or destructive database command is part of setup.
 
-The repository has a pull-request quality gate at `.github/workflows/pr-quality.yml`. It installs the lockfile, generates and validates Prisma, runs typecheck/lint/tests and builds without live database or provider credentials. `npm audit --omit=dev` currently reports one critical and one high production dependency finding; review that before production deployment rather than forcing a breaking upgrade.
+The repository has a pull-request quality gate at `.github/workflows/pr-quality.yml`. It installs the lockfile, generates and validates Prisma, audits production dependencies, runs typecheck/lint/tests and builds without live database or provider credentials. The production audit is clean after upgrading Next.js to `15.5.28` and explicitly pinning Next's compatible PostCSS dependency to `8.5.30`; the full development audit still reports five high findings in the ESLint-only `fast-glob`/`micromatch`/`braces` path.
 
 ## Deployment
 

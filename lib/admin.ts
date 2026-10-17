@@ -30,6 +30,6 @@ export function adminCookieHeader() {
   return secret ? `${ADMIN_COOKIE}=${encodeURIComponent(secret)}; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=28800${process.env.NODE_ENV === "production" ? "; Secure" : ""}` : "";
 }
 
-export function hasAdminCookie() {
-  return matchesSecret(cookies().get(ADMIN_COOKIE)?.value);
+export async function hasAdminCookie() {
+  return matchesSecret((await cookies()).get(ADMIN_COOKIE)?.value);
 }

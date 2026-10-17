@@ -6,19 +6,21 @@ import { getProductBySlug, getProductOffers, searchProducts } from "@/lib/produc
 import { isActiveCountry } from "@/lib/catalog-config";
 import { siteUrl } from "@/lib/seo";
 
-export const revalidate = 60 * 60;
+export const revalidate = 3600;
 
-export async function generateMetadata({ params }: { params: { country: string; slug: string } }): Promise<Metadata> {
-  const product = await getProductBySlug(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ country: string; slug: string }> }): Promise<Metadata> {
+  const { country, slug } = await params;
+  const product = await getProductBySlug(slug);
   if (!product) return { title: "Product not found | Global Market Hub" };
-  return { title: `${product.title} | Global Market Hub`, description: `${product.title} from ${product.merchant}, freshly synced in INR.`, alternates: { canonical: `${siteUrl()}/${params.country}/product/${product.slug}` } };
+  return { title: `${product.title} | Global Market Hub`, description: `${product.title} from ${product.merchant}, freshly synced in INR.`, alternates: { canonical: `${siteUrl()}/${country}/product/${product.slug}` } };
 }
 
-export default async function ProductPage({ params }: { params: { country: string; slug: string } }) {
-  if (!isActiveCountry(params.country)) notFound();
-  const product = await getProductBySlug(params.slug);
+export default async function ProductPage({ params }: { params: Promise<{ country: string; slug: string }> }) {
+  const { country: rawCountry, slug } = await params;
+  if (!isActiveCountry(rawCountry)) notFound();
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
   const offers = await getProductOffers(product);
   const related = (await searchProducts("", undefined, product.category)).filter((item) => item.id !== product.id).slice(0, 3);
-  return <><Header country={params.country.toLowerCase()} /><ProductDetail product={product} offers={offers} related={related} country={params.country.toLowerCase()} /></>;
+  return <><Header country={rawCountry.toLowerCase()} /><ProductDetail product={product} offers={offers} related={related} country={rawCountry.toLowerCase()} /></>;
 }

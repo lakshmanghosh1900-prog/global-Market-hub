@@ -2,7 +2,7 @@
 
 **Repo:** https://github.com/lakshmanghosh1900-prog/global-Market-hub.git
 **Track:** Agents & Automation agents
-**Stack:** Next.js 14 App Router, Postgres, BullMQ, Prisma
+**Stack:** Next.js 15.5.28 App Router, Postgres, BullMQ, Prisma
 
 ## Status (2026-10-17)
 - Sections 11 and 12 are now in the doc, including the v1.1 affiliate wishlist cart and future best-offer alert system, followed by the build kickoff appendix.
@@ -41,7 +41,7 @@ Location: `docs/section-11-connectors.md`
 
 ### Section 12: Frontend
 Location: `docs/section-12-frontend.md`
-- Next.js 14 country routing
+- Next.js 15 country routing
 - Country switcher (plain India badge until second country active)
 - Header and bracket strip
 - Product card with merchant badge and freshness label
