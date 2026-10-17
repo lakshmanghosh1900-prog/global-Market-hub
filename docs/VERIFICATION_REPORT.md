@@ -80,3 +80,4 @@ With the development server running at `http://localhost:3000` and no database/p
 - **Code-verified:** Yes, for the checks and smoke routes listed above.
 - **Live-provider-verified:** No; credentials and database are unavailable.
 - **Production-ready:** Not yet. Complete the external activation blockers in `PENDING.md`, run the controlled first ingestion, and perform browser QA on the deployed domain before launch.
+- **GitHub delivery:** The verified local branch is ready, but push is blocked because this environment has no `gh` executable and Git cannot authenticate the HTTPS remote. No push or PR is claimed.
