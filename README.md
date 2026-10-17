@@ -65,7 +65,9 @@ npm test
 npm run build
 ```
 
-`npm test` is the single offline-capable application test command. The current unit suite contains 35 tests. `prisma migrate status` and `npm run seed:catalog` require a reachable PostgreSQL instance; no reset or destructive database command is part of setup.
+`npm test` is the single offline-capable application test command. The current unit suite contains 35 tests. The owner-side Windows development database has verified migration 7 and catalog metadata seeding; this Linux agent cannot access that Windows `localhost:5432` instance. Production migration/seed still require the production database. No reset or destructive database command is part of setup.
+
+The repository has a pull-request quality gate at `.github/workflows/pr-quality.yml`. It installs the lockfile, generates and validates Prisma, runs typecheck/lint/tests and builds without live database or provider credentials. `npm audit --omit=dev` currently reports one critical and one high production dependency finding; review that before production deployment rather than forcing a breaking upgrade.
 
 ## Deployment
 
@@ -89,3 +91,4 @@ npm run build
 - `docs/section-12-frontend.md` - frontend, PDP and SEO behavior
 - `docs/PRODUCTION_CHECKLIST.md` - deployment and live-ingestion procedure
 - `docs/VERIFICATION_REPORT.md` - current evidence and known environment blockers
+- `.github/workflows/pr-quality.yml` - pull-request quality gate using locked dependencies and no live database/provider secrets

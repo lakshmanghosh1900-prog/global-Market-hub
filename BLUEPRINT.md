@@ -7,7 +7,7 @@
 ## Status (2026-10-17)
 - Sections 11 and 12 are now in the doc, including the v1.1 affiliate wishlist cart and future best-offer alert system, followed by the build kickoff appendix.
 - Live documentation check changed earlier assumptions.
-- The code has been run through the local typecheck, lint, 35-test unit suite, production build, and HTTP route smoke checks. Database and live-provider verification remain externally blocked; see `docs/VERIFICATION_REPORT.md`.
+- The code has been run through the local typecheck, lint, 35-test unit suite, production build, and HTTP route smoke checks. Owner-side Windows development database migration/seed verification is recorded separately; production data/provider activation, dependency security review and browser QA remain external. See `docs/VERIFICATION_REPORT.md`.
 
 ## Live Check Changes
 

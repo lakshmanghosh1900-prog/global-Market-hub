@@ -8,10 +8,12 @@ The code-level marketplace, search, taxonomy, country preview, saved comparison,
 2. [ ] **Cuelinks product feed:** confirm separately whether the account has an authorized product catalog/feed. Current status is `PRODUCT_FEED_ACCESS_UNKNOWN`; campaigns/offers/link conversion do not prove product-feed access.
 3. [ ] **Flipkart Affiliate:** direct tracking ID (`affid`) and API token remain optional for Cuelinks-managed flows and are still unavailable.
 4. [ ] **Amazon Associates India:** verify Creators API access and account conditions. Keep curated mode until verified.
-5. [ ] **Database:** provide a reachable PostgreSQL deployment and run the migrations plus idempotent catalog seed.
-6. [ ] **Domain + Hosting:** configure the production domain, `NEXT_PUBLIC_BASE_URL`, Vercel project and cron secret.
-7. [ ] **Brand/Legal:** provide the legal entity, grievance officer name/email/address and public compliance copy.
-8. [ ] **Alert delivery:** configure and verify a compliant email sender/provider and WhatsApp provider before enabling delivery.
+5. [x] **Windows development database:** owner-side Windows PostgreSQL is reachable, migration `00000000000007_cuelinks_offers_network` is applied, and catalog metadata seeding completed. The Linux agent cannot access that Windows `localhost:5432` instance.
+6. [ ] **Production database and first ingestion:** provide the production PostgreSQL deployment, apply migrations and run the controlled idempotent catalog seed/ingestion.
+7. [ ] **Domain + Hosting:** configure the production domain, `NEXT_PUBLIC_BASE_URL`, Vercel project and cron secret.
+8. [ ] **Brand/Legal:** provide the legal entity, grievance officer name/email/address and public compliance copy.
+9. [ ] **Alert delivery:** configure and verify a compliant email sender/provider and WhatsApp provider before enabling delivery.
+10. [ ] **Production dependency security:** resolve or formally mitigate the `npm audit --omit=dev` findings (1 critical, 1 high) in the locked Next.js/PostCSS dependency tree without using an unreviewed breaking upgrade.
 
 ## Completed code follow-ups
 
@@ -29,7 +31,10 @@ The code-level marketplace, search, taxonomy, country preview, saved comparison,
 - [x] Cuelinks offers persist separately from products and render at `/{country}/deals` when a verified sync populates them.
 - [x] Cuelinks-managed product redirects are server-authoritative and fail closed when conversion is not affiliated.
 - [x] Daily category health check reports unknown live product categories without rewriting catalog data; daily expired-cart cleanup removes server carts after their TTL.
-- [ ] Run `npm run prisma:migrate:deploy` and `npm run seed:catalog` against the configured PostgreSQL database. This workspace currently has no reachable PostgreSQL server at `localhost:5432`.
+- [x] Owner-side Windows Prisma generation, migration status and catalog metadata seeding were verified after resolving the project-specific Prisma engine lock.
+- [x] A PR quality gate is defined in `.github/workflows/pr-quality.yml` and does not require live provider credentials or a production database.
+- [x] Development fixture fallback is limited to an empty/unavailable catalog in non-production; active real catalog results are never replaced by fixtures.
+- [ ] Run `npm run prisma:migrate:deploy` and `npm run seed:catalog` against the production PostgreSQL database. The Linux agent cannot access the owner's Windows PostgreSQL instance.
 - [ ] Run a controlled real Flipkart ingestion only after credentials and database are configured.
 - [ ] Replace local fixture preview data with real verified inventory in production.
 

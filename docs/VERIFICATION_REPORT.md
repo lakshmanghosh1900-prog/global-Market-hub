@@ -1,10 +1,17 @@
 # Global Market Hub Verification Report
 
-**Verification date:** 2026-10-17
+**Verification date:** 2026-10-18
 **Working branch:** `fix/global-market-hub-final-completion`
-**Status:** **CODE VERIFIED; DATABASE AND LIVE PROVIDERS BLOCKED**
+**Verification baseline HEAD:** `2a0da426ed92b80eebe47e514a84270750b07999`
+**Status:** **CODE VERIFIED; OWNER-SIDE DEVELOPMENT DATABASE VERIFIED; LIVE ACTIVATION BLOCKED**
 
 This report records checks run against the current working tree. It replaces the historical report that described an earlier implementation and a different test count.
+
+## Evidence provenance
+
+- **Owner-side Windows verification:** The owner reports that PostgreSQL on Windows was reachable, migration `00000000000007_cuelinks_offers_network` was applied, catalog metadata seeding completed successfully, and the Windows Prisma engine-generation lock was cleared before the corrective release commit was pushed.
+- **Linux agent verification:** This agent can run the offline code checks, but its `localhost:5432` is a separate Linux namespace and cannot access the owner's Windows PostgreSQL instance. A Linux `P1001` therefore does not contradict the owner-side Windows result and is not evidence that the Windows database is unavailable.
+- **Live activation:** No provider credentials, real product inventory, or browser deployment evidence is claimed by this report.
 
 ## Implemented and inspected
 
@@ -31,15 +38,18 @@ Commands run from the repository root:
 
 | Command | Result |
 |---|---|
-| `npm run prisma:generate` | PASS — Prisma Client 5.22.0 generated |
+| `npm ci --ignore-scripts` | PASS — 351 packages installed from `package-lock.json`; npm reported 5 audit findings (4 high, 1 critical) including development dependencies |
+| `npm run prisma:generate` | PASS — Prisma Client 5.22.0 generated; owner-side Windows generation also reported PASS after the engine-lock remediation |
 | `npm exec -- prisma validate` | PASS — schema valid |
-| `npm exec -- prisma migrate status` | **BLOCKED_ENVIRONMENT** — PostgreSQL at `localhost:5432` is unreachable (P1001) |
-| `npm run seed:catalog` | **BLOCKED_ENVIRONMENT** — same unavailable PostgreSQL server; no reset or destructive DB command was run |
+| `npm exec -- prisma migrate status` | OWNER-SIDE WINDOWS PASS — migration `00000000000007_cuelinks_offers_network` reported applied; Linux agent remains BLOCKED_ENVIRONMENT with P1001 because it cannot reach Windows PostgreSQL |
+| `npm run seed:catalog` | OWNER-SIDE WINDOWS PASS — catalog metadata seed completed; Linux agent remains BLOCKED_ENVIRONMENT with P1001 because it cannot reach Windows PostgreSQL |
 | `npm run typecheck` | PASS |
 | `npm run lint` | PASS — no ESLint warnings or errors |
 | `npm test` | PASS — **35 tests passed**, 0 failed |
 | `npm run build` | PASS — Next.js production build completed |
 | `git diff --check` | PASS — no whitespace errors |
+| `npm audit --omit=dev` | **BLOCKED_SECURITY** — 2 production dependency findings (1 critical, 1 high) in the locked Next.js/PostCSS tree; no breaking `npm audit fix --force` was run |
+| GitHub Actions PR quality gate | ADDED in `.github/workflows/pr-quality.yml`; no run is claimed until the pushed workflow executes |
 
 The unit suite covers cart expiry/cap/dedupe/cleanup, country registry and inactive API isolation, taxonomy aliases, bracket search, structured chat, official Cuelinks campaign/offer/link-conversion contract behavior, curated CSV safety, redirect restrictions, HMAC placeholder behavior, Flipkart parsing/feed-host validation/refetch, upsert policy, alert validation/consent/verification/unsubscribe, price-alert numeric boundaries, and authoritative redirect requirements.
 
@@ -73,16 +83,22 @@ With the development server running at `http://localhost:3100` for this run, wit
 
 ## External verification still blocked
 
-- No PostgreSQL server is reachable in this environment, so migration status, catalog row counts, repeat seed execution and database-backed offer comparisons were not live-verified.
+- The Linux agent cannot access the owner's Windows PostgreSQL instance, so it cannot independently reproduce the owner-side migration/seed result or query Windows catalog row counts. The owner-side development-database result is recorded above.
 - No real Flipkart or Cuelinks provider request or real product URL was tested; configured local values were not used for live calls.
 - Amazon Creators API access remains unverified. Cuelinks endpoint contracts are verified against the official documentation, but live credentials, account scopes, campaign eligibility and product-feed access are not verified.
 - No compliant email or WhatsApp delivery provider is configured; alert delivery was not claimed or tested as real.
 - Browser visual automation was not available. HTTP smoke checks and static/type/lint/build checks were used instead; responsive interaction should receive a final browser pass after deployment.
+- `npm audit --omit=dev` reports a critical Next.js and high PostCSS production dependency exposure requiring a compatible upgrade/mitigation review before production deployment. The locked stack was not force-upgraded during this warrant.
 
 ## Production conclusion
 
 - **Code-verified:** Yes, for the checks and smoke routes listed above.
 - **Live-provider-verified:** No; no live Cuelinks/Flipkart call was made. Contract tests are mocked and do not prove live access.
 - **Product-feed access:** `PRODUCT_FEED_ACCESS_UNKNOWN`; campaigns/offers/link conversion do not prove an authorized product feed.
+- **Affiliate credential/scope readiness:** Code is scope-aware for Cuelinks `read:campaigns`, `read:offers`, and `write:links`; no live key/scope verification is claimed. Flipkart and Amazon credentials/access remain unverified.
+- **Inventory truthfulness:** No unverified provider response is promoted into product inventory. Cuelinks offers remain separate from products; development fixtures are marked and production fails closed when real products are unavailable.
+- **Security review:** Server-authoritative signed redirects, host allowlists, cron/admin authorization, fixture blocking and sanitized provider errors are implemented. Dependency audit findings remain an open production blocker.
+- **Production configuration:** Production domain, legal identity, HMAC, cron, approved hosts, provider credentials, alert delivery and hosting configuration remain operator-owned blockers.
+- **Browser QA:** Not completed; browser automation is unavailable in this agent and must run against the deployed domain.
 - **Production-ready:** Not yet. Complete the external activation blockers in `PENDING.md`, run the controlled first ingestion, and perform browser QA on the deployed domain before launch.
-- **GitHub delivery:** The verified local branch is ready, but push is blocked because this environment has no `gh` executable and Git cannot authenticate the HTTPS remote. No push or PR is claimed.
+- **GitHub delivery at verification start:** Remote branch and PR #1 head both pointed to `2a0da426ed92b80eebe47e514a84270750b07999`; the PR was open and unmerged. GitHub reported no check runs for that HEAD, so CI was not claimed as passed before this workflow was added.
