@@ -4,7 +4,7 @@ import { type AlertSubscriptionStore, verifyPendingAlertSubscription } from "@/l
 
 async function getVerification(request: Request, store: AlertSubscriptionStore = prisma) {
   const token = new URL(request.url).searchParams.get("token");
-  if (!token) return NextResponse.json({ error: "Verification token is required" }, { status: 400 });
+  if (!token || !/^[a-f0-9]{64}$/i.test(token)) return NextResponse.json({ error: "A valid verification token is required" }, { status: 400 });
 
   try {
     const result = await verifyPendingAlertSubscription(store, token);

@@ -1,10 +1,10 @@
-# Section 12: Frontend - Next.js 14 Country Routing, Cards, Listing, PDP, SEO
+# Section 12: Frontend - Next.js 15 Country Routing, Cards, Listing, PDP, SEO
 
-## 12.1 Next.js 14 Country Routing
+## 12.1 Next.js 15 Country Routing
 - Structure: app/[country]/...
 - Default: /in/*
 - Middleware: detect country, rewrite to /in if no country
-- Country switcher component: Shows plain India badge until second country active. When second country active, shows dropdown.
+- Country switcher component: Reads the 38-country registry, shows India as active, labels other markets as coming soon, and preserves inactive-market preview routing.
 
 ## 12.2 Header and Bracket Strip
 - Header: logo, search, country switcher, categories
@@ -12,10 +12,10 @@
 
 ## 12.3 Product Card
 - Merchant badge (Flipkart, Amazon-curated, Cuelinks merchant)
-- Freshness label: "Updated 2h ago" from lastSync
+- Freshness label derived from `lastSync`; preview fixtures are explicitly disclosed
 - Price in INR, MRP strike, discount %
 - Image, title, inStock
-- Clickout: `/out?url=affiliate_url` (logs click, redirects with tracking ID; every `amazon.in` destination is normalized to `tag=globalmarketh-21` while preserving other query parameters)
+- Clickout: the browser submits an authoritative product ID to the server token route. The server validates the stored exact merchant URL, signs a short-lived `/out` token, logs a click, and applies merchant tracking. Fixtures, generic homepages, invalid hosts and missing HMAC are rejected.
 
 ## 12.4 Shared Listing Pages
 - /in/under/[bracket] e.g. under-49, under-99
@@ -53,8 +53,7 @@ Example:
 - Generate via Next.js app/sitemap.ts
 
 ## 12.6 Country Switcher Logic
-- Until second country active: show plain badge "IN - India"
-- When second country active: dropdown with IN, AE etc.
+- Country selector always reads the registry. India is selectable and active; AE and all other inactive countries are selectable as clearly labelled coming-soon previews only.
 
 ## 12.7 Affiliate Wishlist Cart
 

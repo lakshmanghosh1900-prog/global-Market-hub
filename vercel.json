@@ -4,7 +4,8 @@
     { "path": "/api/cron/price-check", "schedule": "30 * * * *" },
     { "path": "/api/cron/cuelinks-deals-sync", "schedule": "0 */12 * * *" },
     { "path": "/api/cron/delist", "schedule": "0 2 * * *" },
-    { "path": "/api/cron/category-reindex", "schedule": "0 3 * * *" }
+    { "path": "/api/cron/category-reindex", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/cart-cleanup", "schedule": "30 3 * * *" }
   ],
   "headers": [
     { "source": "/_next/static/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },

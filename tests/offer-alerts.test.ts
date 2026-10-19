@@ -61,7 +61,7 @@ test("subscribe rejects malformed, null, array, and invalid preference JSON bodi
 
   const invalidBracket = await responseForJson(JSON.stringify({ ...baseBody, priceBrackets: ["under-100"] }));
   assert.equal(invalidBracket.status, 400);
-  assert.match((await invalidBracket.json()).error, /Free.*Under ₹99.*Under ₹999.*Flash Deals/);
+   assert.match((await invalidBracket.json()).error, /Under ₹49.*Under ₹99.*Under ₹199.*Under ₹499/);
 });
 
 test("validation normalizes bounded email and international/local optional phones", () => {
@@ -104,6 +104,7 @@ test("consent and WhatsApp opt-in boundaries prevent unapproved data from being 
   assert.equal(args.create.whatsappNo, null);
   assert.equal(args.create.whatsappConsentAt, null);
   assert.equal(args.update.whatsappNo, null);
+  assert.equal(typeof args.create.unsubscribeToken, "string");
 });
 
 test("subscribe upsert keeps normalized fields, server timestamps, Decimal(10,2) price, and a single-use token", async () => {
@@ -177,7 +178,7 @@ test("unsubscribe clears pending tokens so an old link cannot reactivate the rec
     offerAlertSubscription: {
       updateMany: async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
         calls.push(args);
-        if (args.where.email === "shopper@example.com") {
+        if (args.where.unsubscribeToken === "pending-token") {
           active = false;
           token = null;
           return { count: 1 };
@@ -192,12 +193,12 @@ test("unsubscribe clears pending tokens so an old link cannot reactivate the rec
     },
   } as unknown as AlertSubscriptionStore;
 
-  await unsubscribeAlertSubscription(store, "shopper@example.com");
+  await unsubscribeAlertSubscription(store, "pending-token");
   const verification = await verifyPendingAlertSubscription(store, "pending-token");
   assert.equal(verification.count, 0);
   assert.deepEqual(calls[0], {
-    where: { email: "shopper@example.com" },
-    data: { isActive: false, verificationToken: null },
+    where: { unsubscribeToken: "pending-token", isActive: true },
+    data: { isActive: false, verificationToken: null, unsubscribeToken: null },
   });
   assert.deepEqual(calls[1], {
     where: { verificationToken: "pending-token", isActive: true, isVerified: false },

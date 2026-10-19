@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { addToCart, CART_STORAGE_KEY, clearCart, getCart, MAX_CART_ITEMS } from "@/lib/cart-storage";
+import { cleanupExpiredCarts } from "@/lib/cart";
 
 function installStorage() {
   const values = new Map<string, string>();
@@ -48,4 +49,11 @@ test("cart storage drops items after their 30-day expiry", () => {
   const values = installStorage();
   values.set(CART_STORAGE_KEY, JSON.stringify({ version: 1, items: [{ ...item("expired"), expiresAt: new Date(Date.now() - 1).toISOString() }] }));
   assert.deepEqual(getCart(), []);
+});
+
+test("server cart cleanup requests deletion only for expired carts", async () => {
+  let where: unknown;
+  const result = await cleanupExpiredCarts({ cart: { deleteMany: async (args: { where: unknown }) => { where = args.where; return { count: 2 }; } } } as never, new Date("2026-10-17T00:00:00.000Z"));
+  assert.equal(result.count, 2);
+  assert.deepEqual(where, { expiresAt: { lte: new Date("2026-10-17T00:00:00.000Z") } });
 });

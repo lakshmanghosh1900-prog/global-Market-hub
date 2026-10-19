@@ -24,7 +24,7 @@ export async function GET() {
         parsedCount: lastRun.parsedCount,
         upserted: lastRun.upserted,
         missingChecked: lastRun.missingChecked,
-        error: lastRun.error,
+         error: lastRun.error ? "The last provider run failed; detailed diagnostics are protected." : null,
       } : null,
     }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
@@ -34,7 +34,7 @@ export async function GET() {
       productCount: 0,
       expiredFeeds: 0,
       lastRun: null,
-      warning: error instanceof Error ? error.message : "Ingest status is unavailable until the database is configured.",
+       warning: "Ingest status is temporarily unavailable until the database is configured.",
     }, { headers: { "cache-control": "no-store" } });
   }
 }

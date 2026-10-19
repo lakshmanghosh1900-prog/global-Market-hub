@@ -21,14 +21,16 @@ async function postSubscribe(request: Request, store: AlertSubscriptionStore = p
 
   const now = new Date();
   const verificationToken = randomBytes(32).toString("hex");
+  const unsubscribeToken = randomBytes(32).toString("hex");
   try {
-    await upsertAlertSubscription(store, validation.value, now, verificationToken);
+    await upsertAlertSubscription(store, validation.value, now, verificationToken, unsubscribeToken);
 
     const demoMode = isAlertsDemoMode();
     const responseBody: {
       ok: true;
       message: string;
       mockVerificationUrl?: string;
+      mockUnsubscribeUrl?: string;
     } = {
       ok: true,
       message: demoMode
@@ -39,6 +41,7 @@ async function postSubscribe(request: Request, store: AlertSubscriptionStore = p
     if (demoMode) {
       const verificationUrl = new URL(`/api/alerts/verify?token=${encodeURIComponent(verificationToken)}`, request.url).toString();
       responseBody.mockVerificationUrl = verificationUrl;
+      responseBody.mockUnsubscribeUrl = new URL(`/api/alerts/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`, request.url).toString();
       console.info(`[alerts] mock verification URL: ${verificationUrl}`);
     }
 

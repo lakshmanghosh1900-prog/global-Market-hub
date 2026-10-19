@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { addFlipkartAffiliateId, addMerchantAffiliateTracking, AMAZON_ASSOCIATE_TAG } from "@/lib/affiliate";
-import { extractProducts, listFlipkartFeeds } from "@/lib/connectors/flipkart";
+import { extractProducts, isAllowedFlipkartFeedUrl, listFlipkartFeeds } from "@/lib/connectors/flipkart";
 import { createSignedRedirect, isAllowedAffiliateUrl, isValidSignature, signatureFor, trackedMerchantUrl } from "@/lib/redirect";
 import { GET as outboundRedirect } from "@/app/out/route";
 import { isPastOosRetention, normalizedTitle, sharedUpsert, shouldDelistMissingRuns, titleSimilarity } from "@/lib/products/upsert";
+
+process.env.HMAC_SECRET = "unit-test-hmac-secret";
 
 test("affiliate tracking is added without dropping existing query parameters", () => {
   const trackedUrl = addFlipkartAffiliateId(
@@ -27,20 +29,18 @@ test("every Amazon decorator call enforces the production Associates tag", () =>
   assert.equal(new URL(trackedMerchantUrl("https://www.amazon.in/dp/B000TEST?psc=1")).searchParams.get("tag"), AMAZON_ASSOCIATE_TAG);
 });
 
-test("the /out handler decorates Amazon redirects even when the source URL has other query parameters", async () => {
+test("the /out handler requires an authoritative product identifier", async () => {
   const target = "https://www.amazon.in/dp/B000TEST?ref_=nav&psc=1";
-  const signedPath = createSignedRedirect(target, "amazon-product");
-  const response = outboundRedirect(new Request(`https://global-market-hub.test${signedPath}`));
-  assert.equal(response.status, 307);
-  const location = response.headers.get("location");
-  assert.ok(location);
-  assert.equal(new URL(location).searchParams.get("tag"), AMAZON_ASSOCIATE_TAG);
+  const signedPath = createSignedRedirect(target);
+  const response = await outboundRedirect(new Request(`https://global-market-hub.test${signedPath}`));
+  assert.equal(response.status, 401);
 });
 
 test("feed URLs are refetched from the list endpoint on a sync run", async () => {
   process.env.FLIPKART_AFFILIATE_ID = "test-affiliate";
   process.env.FLIPKART_AFFILIATE_TOKEN = "test-token";
   process.env.FLIPKART_API_BASE = "https://affiliate-api.flipkart.test/aff/api";
+  process.env.FLIPKART_FEED_ALLOWED_HOSTS = "feed.flipkart.test";
 
   const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
   const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -62,6 +62,14 @@ test("feed URLs are refetched from the list endpoint on a sync run", async () =>
   assert.equal(headers["Fk-Affiliate-Token"], "test-token");
 });
 
+test("Flipkart feed URLs are restricted before credentialed fetching", () => {
+  process.env.FLIPKART_FEED_ALLOWED_HOSTS = "affiliate-api.flipkart.net,affiliate.flipkart.net";
+  assert.equal(isAllowedFlipkartFeedUrl("https://affiliate-api.flipkart.net/feed/catalog"), true);
+  assert.equal(isAllowedFlipkartFeedUrl("http://affiliate-api.flipkart.net/feed/catalog"), false);
+  assert.equal(isAllowedFlipkartFeedUrl("https://localhost:5432/feed"), false);
+  assert.equal(isAllowedFlipkartFeedUrl("https://evil.example/feed"), false);
+});
+
 test("affiliate redirect tokens are signed and restricted to approved merchant hosts", () => {
   const url = "https://www.flipkart.com/item?pid=ABC123";
   const timestamp = Math.floor(Date.now() / 1000);
@@ -72,6 +80,8 @@ test("affiliate redirect tokens are signed and restricted to approved merchant h
   assert.equal(isValidSignature(timestamp - 601, url, signatureFor(timestamp - 601, url)), false);
   assert.equal(isAllowedAffiliateUrl("https://flipkart.com.evil.example/item"), false);
   assert.equal(isAllowedAffiliateUrl("http://www.flipkart.com/item"), false);
+  assert.equal(isAllowedAffiliateUrl("https://fkrt.clnk.in/abc"), true);
+  assert.equal(isAllowedAffiliateUrl("https://www.flipkart.com/"), false);
 });
 
 test("shared upsert policies cover OOS retention and three-run delisting", () => {

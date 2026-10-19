@@ -1,0 +1,58 @@
+name: PR quality gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - fix/global-market-hub-final-completion
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Node and Prisma quality
+    runs-on: ubuntu-latest
+    env:
+      # Schema validation needs a syntactically valid URL only. No database
+      # service or live provider credentials are used by this job.
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/global_market_hub
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate
+
+      - name: Validate Prisma schema
+        run: npm exec -- prisma validate
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build

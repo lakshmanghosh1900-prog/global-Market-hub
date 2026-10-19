@@ -1,58 +1,94 @@
-# Global Market Hub - Hybrid Mega E-commerce Affiliate Hub
+# Global Market Hub - Affiliate Discovery Marketplace
 
-India-first affiliate hub for 20 merchants. Built for country routing, fresh deals, and compliant affiliate clickouts.
+Global Market Hub is a global-market discovery and price-comparison platform with an India-first active market. Visitors browse products, compare available context, save products for review, and continue to a validated merchant product page.
 
-## Sprint 1 Goal (Flipkart Only)
-`/in/under/under-49` -> real Flipkart products in INR -> clickout with `?affid=YOUR_TRACKING_ID`
+## Product model
+
+Global Market Hub is an affiliate discovery platform, not a seller or payment checkout. Payment, delivery, returns, order support, stock and final checkout remain with the merchant. Some merchant links may include affiliate tracking at no additional cost to the visitor.
+
+India is the only active market until another country has a verified local catalog and approved merchant destinations. The other 37 registry countries are visible as coming-soon previews and are never redirected to Indian offers.
 
 ## Architecture
-- **Frontend:** Next.js 14 App Router, `/[country]/...` routing, ISR 1h
-- **DB:** Postgres + Prisma
+
+- **Frontend:** Next.js 15.5.28 App Router, React 18.3.1, TypeScript
+- **DB:** PostgreSQL + Prisma 5.22 with additive migrations
 - **Jobs:** Vercel Cron with durable Prisma ingest-run status; BullMQ/Redis remains a future scale-out option
-- **Connectors:** Flipkart (real catalog), Amazon Creators API (curated until access), Cuelinks (campaigns/deals only)
+- **Connectors:** Cuelinks V3 campaigns/offers/link conversion; Flipkart real catalog connector when direct credentials exist; Amazon validated curated CSV mode
+- **Runtime:** Node `20.11.1` from `.nvmrc`; npm and `package-lock.json`
 
-## Quick Start
-1. Copy `.env.example` to `.env.local` for Next.js and copy/fill `.env` for Prisma CLI commands
-2. Fill Flipkart affiliate ID + token when API access is available; placeholders keep the UI in mock mode
-3. `npm install && npm run prisma:generate && npx prisma migrate dev && npm run seed:catalog`
-4. `npm run dev`
-5. Trigger first sync: `npm run sync:flipkart`
+## Quick start
 
-With no Flipkart token configured, the listing intentionally renders six local mock products so the Sprint 1 UI can be reviewed before API onboarding.
+1. Use Node `20.11.1` from `.nvmrc`.
+2. Copy `.env.example` to `.env.local` for Next.js and copy/fill `.env` for Prisma CLI commands. Never commit either file.
+3. Start PostgreSQL with your approved local or hosted setup.
+4. Run `npm ci && npm run prisma:generate && npm run prisma:migrate:deploy && npm run seed:catalog`.
+5. Run `npm run dev` and open `http://localhost:3000`.
+6. When verified Flipkart credentials are configured, trigger `npm run sync:flipkart`.
 
-## Global update routes
-- `/in/under/under-49` - Flipkart listing with cart, wishlist, chatbot and merchant clickouts
-- `/in/product/test-slug` - PDP, related products and JSON-LD example
-- `/in/wishlist` - anonymous local wishlist and price-alert controls
-- `/in/wishlist#deal-alerts` - DPDP-consented future best-offer subscription form
-- `/in/login` and `/in/account` - Supabase email OTP and merged cart, wishlist, and alerts
-- `/admin/curated-upload` - ADMIN_SECRET-protected Amazon/Cuelinks CSV import
-- `/admin/clicks` - ADMIN_SECRET-protected merchant/product click dashboard
+Without a reachable database, or when the reachable database has no active product records yet, development mode renders clearly labelled local fixture cards for interface review. Fixtures cannot be saved as live offers or open seller clickouts. Production mode fails closed to honest empty states instead of presenting fixtures as inventory.
+
+## Main routes
+
+- `/` - global homepage with search, taxonomy, markets, price ranges and merchant modes
+- `/in` - India marketplace homepage
+- `/in/categories` - complete discoverable taxonomy directory
+- `/in/search` - URL-backed search, category, price, merchant, freshness, sort and pagination filters
+- `/in/deals` - Cuelinks campaigns/offers as a dedicated deals surface, never as fabricated product inventory
+- `/in/under/under-49` - price-bracket listing
+- `/in/c/electronics` - category listing example
+- `/in/product/test-slug` - local preview PDP; live products use validated database records
+- `/in/wishlist` - anonymous wishlist, saved comparison context and price-alert preferences
+- `/in/login` and `/in/account` - Supabase email OTP and commerce merge flow
+- `/admin/curated-upload` - `ADMIN_SECRET`-protected Amazon/Cuelinks CSV import
+- `/admin/clicks` - `ADMIN_SECRET`-protected click dashboard
 - `/sitemap.xml`, `/in/sitemap.xml`, `/robots.txt` - SEO routes
-- `/api/cron/ingest` - Vercel six-hour ingest route, protected by `CRON_SECRET`
-- `/api/v1/ingest/status` - latest feed fetch, product count, and expired feed status
+- `/api/cron/ingest` - Vercel six-hour ingest route protected by `CRON_SECRET`
+- `/api/v1/ingest/status` - latest feed fetch, product count and expired-feed status
 
-The cart is an affiliate wishlist/comparison cart. It persists anonymous saves for 30 days, caps each cart at 50 products, and opens one signed, allowlisted merchant redirect per item. Global Market Hub never collects payment or offers direct checkout. Amazon remains curated placeholder mode and Cuelinks remains deals-only until their catalog capabilities are verified.
-Alert subscriptions are stored with explicit DPDP consent timestamps. The buildathon logs a mock verification URL; production email and WhatsApp dispatch remain disabled until compliant providers are configured.
+## Catalog and clickout safety
+
+The catalog seed is idempotent and updates registry metadata without deleting products, click records or migration history. Flipkart feed URLs are refetched on every sync because provider links expire. Cuelinks uses the documented V3 base URL and `Authorization: Token ...` contract for campaigns, offers and `POST /links/convert`. Cuelinks campaigns/offers are stored separately from products. The current account's product-feed access is **not verified**; no Cuelinks campaign or coupon is promoted into a product record. Amazon remains curated until access is verified.
+
+Product seller actions are server-authoritative: the browser submits a product ID, the server loads the live product, validates its exact HTTPS merchant URL and signs a short-lived redirect. Cuelinks-managed products call the official link-conversion endpoint and require `affiliated: true` before redirecting. Fixture products, invalid URLs, unavailable products, generic merchant homepages and missing/placeholder HMAC configuration cannot produce an outbound clickout.
+
+The cart is a saved comparison surface, not checkout. Anonymous saves use `global_market_cart`, expire after 30 days, and cap at 50 unique products. Alert subscriptions record explicit consent and use tokenized, single-use unsubscribe authorization. Actual email/WhatsApp delivery remains disabled until compliant providers and sender configuration are available.
 
 ## Checks
+
 ```text
 npm run prisma:generate
-npx prisma db push
+npm exec -- prisma validate
+npm exec -- prisma migrate status
 npm run typecheck
 npm run lint
 npm test
 npm run build
 ```
 
-## Vercel
-Import the repository, configure the variables in `.env.example`, set `CRON_SECRET`, run `npm run prisma:migrate:deploy` during deployment, and seed the taxonomy once with `npm run seed:catalog`. `vercel.json` schedules the six-hour ingest and hourly price check. Until credentials and a database are supplied, the public UI remains usable with local mock catalog data. See `docs/PRODUCTION_CHECKLIST.md` for the controlled first-ingestion procedure.
+`npm test` is the single offline-capable application test command. The current unit suite contains 35 tests. The owner-side Windows development database has verified migration 7 and catalog metadata seeding; this Linux agent cannot access that Windows `localhost:5432` instance. Production migration/seed still require the production database. No reset or destructive database command is part of setup.
 
-## Compliance
-Brand, legal entity, grievance officer, and affiliate disclosure pages are configurable through environment variables. See `PENDING.md` and `docs/PRODUCTION_CHECKLIST.md`.
+The repository has a pull-request quality gate at `.github/workflows/pr-quality.yml`. It installs the lockfile, generates and validates Prisma, audits production dependencies, runs typecheck/lint/tests and builds without live database or provider credentials. The production audit is clean after upgrading Next.js to `15.5.28` and explicitly pinning Next's compatible PostCSS dependency to `8.5.30`; the full development audit still reports five high findings in the ESLint-only `fast-glob`/`micromatch`/`braces` path.
 
-## Docs
-- BLUEPRINT.md - master
-- docs/section-11-connectors.md - connectors & upsert rules
-- docs/section-12-frontend.md - frontend + PDP + SEO
-- docs/appendix-build-kickoff.md - first run
+## Deployment
+
+Configure the variables in `.env.example`, including a production `NEXT_PUBLIC_BASE_URL`, `CRON_SECRET`, a long non-placeholder `HMAC_SECRET`, exact `AFFILIATE_ALLOWED_HOSTS`, database URL, legal values and Supabase settings. Deploy in this order:
+
+```text
+npm ci
+npm run prisma:generate
+npm run prisma:migrate:deploy
+npm run seed:catalog
+npm run build
+```
+
+`vercel.json` schedules the six-hour ingest, hourly price check, twelve-hour Cuelinks deals check, daily delist, daily category health check and daily expired-cart cleanup. See `docs/PRODUCTION_CHECKLIST.md` for controlled first ingestion and provider activation.
+
+## Documentation
+
+- `BLUEPRINT.md` - canonical product and architecture blueprint
+- `PENDING.md` - external activation blockers and completed code follow-ups
+- `docs/section-11-connectors.md` - connector and upsert rules
+- `docs/section-12-frontend.md` - frontend, PDP and SEO behavior
+- `docs/PRODUCTION_CHECKLIST.md` - deployment and live-ingestion procedure
+- `docs/VERIFICATION_REPORT.md` - current evidence and known environment blockers
+- `.github/workflows/pr-quality.yml` - pull-request quality gate using locked dependencies and no live database/provider secrets

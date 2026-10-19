@@ -18,7 +18,7 @@ function readSignedGuestId(value: string | undefined) {
 
 export async function getCommerceIdentity() {
   const user = await getCurrentUser();
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const existingSession = readSignedGuestId(cookieStore.get(GUEST_SESSION_COOKIE)?.value);
   return {
     user,

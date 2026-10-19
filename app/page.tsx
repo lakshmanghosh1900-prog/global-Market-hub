@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { MarketHomePage } from "@/components/market-home";
 
 export default function HomePage() {
-  redirect("/in/under/under-49");
+  return <MarketHomePage global />;
 }
